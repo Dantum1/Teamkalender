@@ -105,7 +105,7 @@
 
 <div class="tabs">
   <button class="tab active" id="tabHome">Teamübersicht</button>
-  <button class="tab" id="tabCalendar">Kalender</button>
+  <button class="tab" id="tabCalendar"><span id="tabCalendarLabel">Kalender</span></button>
   <span class="muted" style="margin-left:auto" id="livePill"></span>
 </div>
 
@@ -545,6 +545,13 @@ function renderRoomHeader(){
   }
 }
 
+function renderTabLabels(){
+  const el = document.getElementById("tabCalendarLabel");
+  if (!el) return;
+
+  el.textContent = room ? room : "Kalender";
+}
+
   function renderTable(){
     const days = getDays();
     const times = getTimes();
@@ -596,6 +603,7 @@ function renderRoomHeader(){
     renderPlayers();
     renderSuggestions();
     renderRoomHeader();
+    renderTabLabels();
     renderTable();
   }
 
@@ -720,6 +728,8 @@ if (!room || !me || !joinCode) {
 
     renderAll();
     notify("Beigetreten ✅", "ok");
+    setTab("calendar");
+
   }
 
   async function toggleSlot(key){
