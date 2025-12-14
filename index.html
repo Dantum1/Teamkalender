@@ -47,9 +47,35 @@
     .players{ display:flex; flex-direction:column; gap:8px; margin-top:10px; }
     .pitem{ display:flex; gap:8px; align-items:center; justify-content:space-between; border:1px solid #1b2735; border-radius:14px; padding:10px 12px; background:#0b111a; }
     .pitem b{ font-weight:650; }
+.modal{
+  position:fixed; inset:0;
+  background:rgba(0,0,0,.55);
+  display:flex; align-items:center; justify-content:center;
+  z-index:999;
+}
+.modalCard{
+  background:#0f1620;
+  border:1px solid #1b2735;
+  border-radius:16px;
+  padding:18px;
+  width:320px;
+}
+
   </style>
 </head>
 <body>
+<div id="nameModal" class="modal" style="display:none;">
+  <div class="modalCard">
+    <h3>Willkommen 👋</h3>
+    <p class="muted">Wie sollen wir dich nennen?</p>
+    <input id="modalName" placeholder="Dein Name">
+    <div style="display:flex; gap:8px; justify-content:flex-end;">
+      <button id="modalCancel">Abbrechen</button>
+      <button id="modalOk">Beitreten</button>
+    </div>
+  </div>
+</div>
+
 <header>
   <h1>🧩 Team Availability – Live</h1>
   <span class="muted">Erstellen/Beitreten → Slots klicken → alle sehen Updates in Echtzeit</span>
@@ -186,6 +212,35 @@
 
 
 <script type="module">
+
+// ===== Name Modal Helper =====
+async function askName(){
+  return new Promise(res => {
+    const m = document.getElementById("nameModal");
+    const input = document.getElementById("modalName");
+    m.style.display = "flex";
+    input.value = "";
+    input.focus();
+
+    modalOk.onclick = () => {
+      m.style.display = "none";
+      res(input.value.trim());
+    };
+    modalCancel.onclick = () => {
+      m.style.display = "none";
+      res(null);
+    };
+  });
+}
+
+// ===== Rest von deinem JS =====
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// ...
+
+
+
+
+
   import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
   // ✅ HIER ANPASSEN:
@@ -679,7 +734,7 @@ window.joinViaInviteIfPresent = async () => {
 
   await ensureSignedInAnon();
 
-  const name = prompt("Wie heißt du?");
+  const name = await askName();
   if (!name) return;
 
   const { data: roomCode, error } = await supabase.rpc("redeem_invite", {
