@@ -333,6 +333,7 @@ window.supabase = supabase;
   let me = "";
   let myUserId = "";
   let realtimeChannel = null;
+  let joining = false;
 
   // Shared state loaded from DB
   let members = []; // [{user_id, display_name}]
@@ -672,6 +673,14 @@ function renderTabLabels(){
 
   // --- Actions ---
   async function createRoom(){
+if (joining) return;
+joining = true;
+try {
+  // ... dein bisheriger code ...
+} finally {
+  joining = false;
+}
+
     await ensureSignedInAnon();
 
     room = document.getElementById("roomCode").value.trim().toUpperCase();
@@ -698,6 +707,14 @@ function renderTabLabels(){
   }
 
   async function joinRoom(){
+if (joining) return;
+joining = true;
+try {
+  // ... dein bisheriger code ...
+} finally {
+  joining = false;
+}
+
     await ensureSignedInAnon();
 
     room = document.getElementById("roomCode").value.trim().toUpperCase();
@@ -830,6 +847,7 @@ window.joinViaInviteIfPresent = async () => {
 
   ui.mode = "me";
   renderAll();
+  history.replaceState({}, "", location.pathname);
   notify("Beigetreten ✅", "ok");
 }; // ✅ HIER wird die Invite-Funktion geschlossen
 
@@ -857,7 +875,8 @@ async function autoReconnect(){
 
 
 // --- Tabs + Init ---
-window.addEventListener("DOMContentLoaded", () => {
+window.addEventListener("DOMContentLoaded", async () => {
+
   const panelHome = document.getElementById("panelHome");
   const panelCalendar = document.getElementById("panelCalendar");
   const tabHome = document.getElementById("tabHome");
@@ -880,9 +899,21 @@ window.addEventListener("DOMContentLoaded", () => {
   tabCalendar.onclick = () => setTab("calendar");
   setTab("home");
 
-  autoReconnect().catch(console.error);
-  window.joinViaInviteIfPresent().catch(console.error);
-});
+  const params = new URLSearchParams(location.search);
+  const hasInvite = params.has("invite");
+
+  try {
+    if (hasInvite) {
+      await window.joinViaInviteIfPresent();
+    } else {
+      await autoReconnect();
+    }
+  } catch (e) {
+    console.error(e);
+  }
+
+
+  });
 
 
 </script>
