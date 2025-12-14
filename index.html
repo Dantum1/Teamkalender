@@ -1,0 +1,761 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Team Availability – Live</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+    body { margin:0; background:#0b0f14; color:#e7eef7; }
+    header { padding:16px 18px; border-bottom:1px solid #1b2735; display:flex; gap:12px; align-items:center; flex-wrap:wrap;}
+    header h1{ margin:0; font-size:16px; font-weight:650; }
+    .wrap{ max-width:1200px; margin:0 auto; padding:16px 18px; }
+    .row{ display:flex; gap:12px; flex-wrap:wrap; align-items:flex-start; }
+    .card{ background:#0f1620; border:1px solid #1b2735; border-radius:16px; padding:14px; box-shadow:0 8px 24px rgba(0,0,0,.25); }
+    .left{ flex: 1 1 720px; }
+    .right{ flex: 1 1 360px; position:sticky; top:12px; }
+    label{ display:block; font-size:12px; opacity:.85; margin:10px 0 6px; }
+    input, select, button { border-radius:12px; border:1px solid #223248; background:#0b111a; color:#e7eef7; padding:10px 12px; font-size:14px; box-sizing:border-box; }
+    button{ cursor:pointer; border:1px solid #2a3d57; background:#122033; }
+    button:hover{ filter:brightness(1.08); }
+    .muted{ opacity:.75; font-size:12px; }
+    .toolbar{ display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; }
+    .toolbar > * { width:auto; }
+    .gridWrap{ overflow:auto; border:1px solid #1b2735; border-radius:14px; background:#0b111a; }
+    table{ border-collapse:separate; border-spacing:0; min-width:980px; width:100%; }
+    th, td{ border-right:1px solid #152232; border-bottom:1px solid #152232; padding:0; }
+    th{ position:sticky; top:0; background:#0f1620; z-index:2; font-size:12px; padding:8px 10px; text-align:left; }
+    th:first-child{ left:0; z-index:3; position:sticky; }
+    td:first-child{ position:sticky; left:0; background:#0b111a; z-index:1; }
+    .hcell{ padding:8px 10px; font-size:12px; opacity:.85; white-space:nowrap; }
+    .slot{
+      width: 100%;
+      height: 28px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:12px;
+      user-select:none;
+      cursor:pointer;
+    }
+    .slot.on{ outline:1px solid #2f6a52; }
+    .slot:hover{ filter:brightness(1.1); }
+    .pill{ display:inline-flex; gap:8px; align-items:center; padding:6px 10px; border-radius:999px; border:1px solid #24344a; background:#0b111a; font-size:12px; }
+    .list{ display:flex; flex-direction:column; gap:10px; margin-top:10px; }
+    .item{ border:1px solid #1b2735; border-radius:14px; padding:10px 12px; background:#0b111a; }
+    .item .top{ display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+    .ok{ color:#a7ffcd; }
+    .warn{ color:#ffd38a; }
+    .players{ display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+    .pitem{ display:flex; gap:8px; align-items:center; justify-content:space-between; border:1px solid #1b2735; border-radius:14px; padding:10px 12px; background:#0b111a; }
+    .pitem b{ font-weight:650; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>🧩 Team Availability – Live</h1>
+  <span class="muted">Erstellen/Beitreten → Slots klicken → alle sehen Updates in Echtzeit</span>
+</header>
+
+
+
+<div class="wrap">
+
+<div class="tabs">
+  <button class="tab active" id="tabHome">Teamübersicht</button>
+  <button class="tab" id="tabCalendar">Kalender</button>
+  <span class="muted" style="margin-left:auto" id="livePill"></span>
+</div>
+
+<section class="card" id="panelHome">
+  <h2 style="margin:0 0 10px; font-size:16px;">Teamkalender</h2>
+
+  <!-- ✅ HIER deine bestehende Toolbar REINKOPIEREN -->
+  <div class="toolbar" id="homeToolbar">
+ 
+        <label style="margin:0;">
+          <span class="muted">Room</span><br/>
+          <input id="roomCode" placeholder="TEAM-DEC" style="width:140px;">
+        </label>
+
+        <label style="margin:0;">
+          <span class="muted">Join-Code</span><br/>
+          <input id="joinCode" placeholder="secret123" style="width:140px;">
+        </label>
+
+        <label style="margin:0;">
+          <span class="muted">Name</span><br/>
+          <input id="myName" placeholder="Leon" style="width:140px;">
+        </label>
+
+        <button id="createBtn">Erstellen</button>
+        <button id="joinBtn">Beitreten</button>
+	<button id="inviteBtn" type="button">Invite-Link kopieren</button>
+
+	
+
+        <span style="width:1px; height:34px; background:#1b2735;"></span>
+
+        <span class="pill">Zeitraum: <b id="rangeLabel"></b></span>
+
+        <label style="margin:0;">
+          <span class="muted">Startdatum</span><br/>
+          <input id="startDate" type="date">
+        </label>
+
+        <label style="margin:0;">
+          <span class="muted">Tage</span><br/>
+          <select id="daysCount">
+            <option>5</option><option selected>7</option><option>10</option><option>14</option>
+          </select>
+        </label>
+
+        <label style="margin:0;">
+          <span class="muted">Von</span><br/>
+          <select id="hourFrom"></select>
+        </label>
+
+        <label style="margin:0;">
+          <span class="muted">Bis</span><br/>
+          <select id="hourTo"></select>
+        </label>
+
+        <label style="margin:0;">
+          <span class="muted">Slot</span><br/>
+          <select id="slotMinutes">
+            <option value="30">30 min</option>
+            <option value="60" selected>60 min</option>
+          </select>
+        </label>
+
+        <span style="flex:1"></span>
+
+        <label style="margin:0;">
+          <span class="muted">Ansicht</span><br/>
+          <select id="mode">
+            <option value="overlay" selected>Overlap (alle)</option>
+            <option value="me">Ich (klicken)</option>
+          </select>
+        </label>
+      
+
+  <div class="muted" style="margin-top:12px;">Teamübersicht</div>
+  <div class="list" id="teamOverview"></div>
+</section>
+
+<div id="panelCalendar" style="display:none;">
+  <div class="row">
+
+    <section class="card left">
+      
+
+      <div class="muted" style="margin-top:10px;">
+        In <b>Ich (klicken)</b> markierst du deine Slots. In <b>Overlap</b> siehst du wie viele können.
+      </div>
+
+      <div class="gridWrap" style="margin-top:12px;">
+        <table id="tbl"></table>
+      </div>
+    </section>
+
+    <aside class="card right">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+        <div>
+          <div style="font-weight:650;">Room Status</div>
+          <div class="muted">Mitglieder & Vorschläge</div>
+        </div>
+      </div>
+
+      <div class="muted" style="margin-top:10px;">
+        Du brauchst keine “Spieler hinzufügen”-Funktion: Wer beitritt, wird automatisch Mitglied.
+      </div>
+
+      <div class="players" id="players"></div>
+
+      <hr style="border:none; border-top:1px solid #1b2735; margin:14px 0;">
+
+      <div style="font-weight:650;">Top Terminvorschläge</div>
+      <div class="muted">höchster Overlap</div>
+      <div class="list" id="suggestions"></div>
+
+      <hr style="border:none; border-top:1px solid #1b2735; margin:14px 0;">
+
+      <div id="status" class="muted"></div>
+    </aside>
+   </div>
+ </div>
+</div>
+
+
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+  // ✅ HIER ANPASSEN:
+  const SUPABASE_URL = "https://ipsxbbbdnsufpfbqsqqv.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlwc3hiYmJkbnN1ZnBmYnFzcXF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NjUzNTYsImV4cCI6MjA4MTE0MTM1Nn0.JCDyw6e9stz-mQpUp-mqjzet9-NeyofKSYYiD-ZJHJo";
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+
+window.supabase = supabase;
+
+  // --- UI / State ---
+  const pad = n => String(n).padStart(2,"0");
+  const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate()+n);
+  const fmtDay = d => d.toLocaleDateString("de-DE",{ weekday:"short", day:"2-digit", month:"2-digit" });
+  // --- Persistenter Session-Store (Desktop) ---
+  const LS_KEY = "teamAvail:v1";
+
+  function saveSessionPrefs(){
+  localStorage.setItem(LS_KEY, JSON.stringify({
+    room,
+    name: document.getElementById("myName").value.trim()
+  }));
+}
+
+  function loadSessionPrefs(){
+    try { return JSON.parse(localStorage.getItem(LS_KEY) || "{}"); }
+    catch { return {}; }
+}
+
+  function forgetSessionPrefs(){
+    localStorage.removeItem(LS_KEY);
+}
+
+
+  function notify(msg, kind="") {
+    const el = document.getElementById("status");
+    el.textContent = msg;
+    el.className = "muted " + kind;
+    setTimeout(()=>{ el.textContent=""; el.className="muted"; }, 4500);
+  }
+
+  function escapeHtml(s){
+    return String(s)
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
+  const slotKey = (dateStr, hh, mm) => `${dateStr}|${pad(hh)}:${pad(mm)}`;
+
+  // Global room/session
+  let room = "";
+  let me = "";
+  let myUserId = "";
+  let realtimeChannel = null;
+
+  // Shared state loaded from DB
+  let members = []; // [{user_id, display_name}]
+  let availabilityByUser = new Map(); // user_id -> Set(slot_key)
+
+  // UI prefs (local only)
+  const now = new Date();
+  let ui = {
+    startDate: ymd(now),
+    daysCount: 7,
+    hourFrom: 16,
+    hourTo: 24,
+    slotMinutes: 60,
+    mode: "overlay"
+  };
+
+  // Elements
+  const startDateEl = document.getElementById("startDate");
+  const daysCountEl = document.getElementById("daysCount");
+  const hourFromEl = document.getElementById("hourFrom");
+  const hourToEl = document.getElementById("hourTo");
+  const slotMinutesEl = document.getElementById("slotMinutes");
+  const modeEl = document.getElementById("mode");
+  const tbl = document.getElementById("tbl");
+  const rangeLabel = document.getElementById("rangeLabel");
+  const suggestionsEl = document.getElementById("suggestions");
+  const playersEl = document.getElementById("players");
+
+// --- Share / Invite ---
+function buildInviteLink(){
+  const url = new URL(location.href);
+  url.searchParams.set("room", room || document.getElementById("roomCode").value.trim().toUpperCase());
+  // Join-Code NICHT in URL!
+  url.searchParams.delete("join");
+  return url.toString();
+}
+
+async function copyToClipboard(text){
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    // Fallback für unsichere Kontexte/ältere Browser
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    return ok;
+  }
+}
+
+// Prefill room from ?room=...
+(function prefillFromUrl(){
+  const params = new URLSearchParams(location.search);
+  const r = params.get("room");
+  if (r) document.getElementById("roomCode").value = String(r).trim().toUpperCase();
+})();
+
+
+
+
+
+  // init hour selects
+  for (let h=0; h<=24; h++){
+    const o1 = document.createElement("option"); o1.value=h; o1.textContent=pad(h)+":00";
+    const o2 = o1.cloneNode(true);
+    hourFromEl.appendChild(o1); hourToEl.appendChild(o2);
+  }
+
+  function syncControls(){
+    startDateEl.value = ui.startDate;
+    daysCountEl.value = String(ui.daysCount);
+    hourFromEl.value = String(ui.hourFrom);
+    hourToEl.value = String(ui.hourTo);
+    slotMinutesEl.value = String(ui.slotMinutes);
+    modeEl.value = ui.mode;
+  }
+
+  function getDays(){
+    const base = new Date(ui.startDate + "T00:00:00");
+    const days = [];
+    for (let i=0; i<ui.daysCount; i++) days.push(addDays(base,i));
+    return days;
+  }
+
+  function getTimes(){
+    const times = [];
+    const from = Number(ui.hourFrom);
+    const to = Number(ui.hourTo);
+    const step = Number(ui.slotMinutes);
+    for (let h=from; h<to; h++){
+      for (let m=0; m<60; m+=step){
+        times.push([h,m]);
+      }
+    }
+    return times;
+  }
+
+  function overlapCount(dateStr,h,m){
+    const key = slotKey(dateStr,h,m);
+    let c = 0;
+    for (const [uid, set] of availabilityByUser.entries()){
+      if (set.has(key)) c++;
+    }
+    return c;
+  }
+
+  function myHas(key){
+    const set = availabilityByUser.get(myUserId);
+    return !!(set && set.has(key));
+  }
+
+  function renderPlayers(){
+    playersEl.innerHTML = "";
+    if (!room){
+      playersEl.innerHTML = `<div class="muted">Noch nicht verbunden.</div>`;
+      return;
+    }
+    if (!members.length){
+      playersEl.innerHTML = `<div class="muted">Keine Members geladen.</div>`;
+      return;
+    }
+    for (const m of members){
+      const set = availabilityByUser.get(m.user_id) || new Set();
+      const row = document.createElement("div");
+      row.className = "pitem";
+      row.innerHTML = `
+        <div>
+          <b>${escapeHtml(m.display_name)}</b>
+          <div class="muted">${set.size} Slots</div>
+        </div>
+        <div class="muted">${m.user_id === myUserId ? "du" : ""}</div>
+      `;
+      playersEl.appendChild(row);
+    }
+  }
+
+  function renderSuggestions(){
+    const days = getDays();
+    const times = getTimes();
+    const candidates = [];
+
+    for (const d of days){
+      const dateStr = ymd(d);
+      for (const [h,m] of times){
+        const c = overlapCount(dateStr,h,m);
+        candidates.push({ dateStr, h, m, c });
+      }
+    }
+
+    candidates.sort((a,b) => b.c - a.c || (a.dateStr+a.h+a.m).localeCompare(b.dateStr+b.h+b.m));
+    const top = candidates.filter(x=>x.c>0).slice(0,8);
+
+    suggestionsEl.innerHTML = "";
+    if (!top.length){
+      suggestionsEl.innerHTML = `<div class="muted">Noch keine Overlaps. Leute sollen Slots markieren.</div>`;
+      return;
+    }
+
+    for (const s of top){
+      const d = new Date(s.dateStr + "T00:00:00");
+      const title = `${fmtDay(d)} • ${pad(s.h)}:${pad(s.m)} (${ui.slotMinutes} min)`;
+      const pct = members.length ? Math.round((s.c/members.length)*100) : 0;
+
+      const it = document.createElement("div");
+      it.className="item";
+      it.innerHTML = `
+        <div class="top">
+          <div>
+            <div style="font-weight:650;">${title}</div>
+            <div class="muted">${s.c}/${members.length} können (${pct}%)</div>
+          </div>
+        </div>
+      `;
+      suggestionsEl.appendChild(it);
+    }
+  }
+
+  function renderTable(){
+    const days = getDays();
+    const times = getTimes();
+
+    const start = days[0], end = days[days.length-1];
+    rangeLabel.textContent = `${fmtDay(start)} – ${fmtDay(end)}`;
+
+    tbl.innerHTML = "";
+
+    const trh = document.createElement("tr");
+    trh.innerHTML = `<th>Uhrzeit</th>` + days.map(d=>`<th>${fmtDay(d)}</th>`).join("");
+    tbl.appendChild(trh);
+
+    for (const [h,m] of times){
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td class="hcell">${pad(h)}:${pad(m)}</td>`;
+
+      for (const d of days){
+        const dateStr = ymd(d);
+        const key = slotKey(dateStr,h,m);
+
+        const td = document.createElement("td");
+        const div = document.createElement("div");
+        div.className="slot";
+
+        if (ui.mode === "me"){
+          const on = myHas(key);
+          div.classList.toggle("on", on);
+          div.textContent = on ? "✓" : "";
+          div.style.background = on ? "rgba(34, 187, 119, 0.14)" : "transparent";
+          div.onclick = () => toggleSlot(key);
+        } else {
+          const c = overlapCount(dateStr,h,m);
+          div.textContent = c ? String(c) : "";
+          const ratio = members.length ? c/members.length : 0;
+          div.style.background = ratio ? `rgba(120, 170, 255, ${0.08 + ratio*0.38})` : "transparent";
+          div.onclick = () => notify("Wechsle auf 'Ich (klicken)' um Slots zu setzen.", "warn");
+        }
+
+        td.appendChild(div);
+        tr.appendChild(td);
+      }
+      tbl.appendChild(tr);
+    }
+  }
+
+  function renderAll(){
+    syncControls();
+    renderPlayers();
+    renderSuggestions();
+    renderTable();
+  }
+
+  // --- DB load ---
+  async function ensureSignedInAnon(){
+    const { data: sess } = await supabase.auth.getSession();
+    if (sess?.session?.user?.id){
+      myUserId = sess.session.user.id;
+      return;
+    }
+    const { error } = await supabase.auth.signInAnonymously();
+    if (error) {
+      console.error(error);
+      notify("Auth fehlgeschlagen (Anonymous evtl. deaktiviert).", "warn");
+      throw error;
+    }
+    const { data: sess2 } = await supabase.auth.getSession();
+    myUserId = sess2?.session?.user?.id || "";
+    if (!myUserId) throw new Error("Keine Session nach anon login.");
+  }
+
+  async function loadRoomState(){
+    // Members
+    const { data: mem, error: meErr } = await supabase
+      .from("room_members")
+      .select("user_id, display_name")
+      .eq("room_code", room);
+
+    if (meErr){ console.error(meErr); notify("Members laden fehlgeschlagen", "warn"); return; }
+    members = mem || [];
+
+    // Availability
+    const { data: slots, error: slErr } = await supabase
+      .from("availability")
+      .select("user_id, slot_key")
+      .eq("room_code", room);
+
+    if (slErr){ console.error(slErr); notify("Slots laden fehlgeschlagen", "warn"); return; }
+
+    const map = new Map();
+    for (const row of (slots || [])){
+      if (!map.has(row.user_id)) map.set(row.user_id, new Set());
+      map.get(row.user_id).add(row.slot_key);
+    }
+    availabilityByUser = map;
+  }
+
+  async function startRealtime(){
+    if (realtimeChannel){
+      await supabase.removeChannel(realtimeChannel);
+      realtimeChannel = null;
+    }
+
+    realtimeChannel = supabase
+      .channel(`room:${room}`)
+      .on("postgres_changes",
+        { event:"*", schema:"public", table:"availability", filter:`room_code=eq.${room}` },
+        async () => { await loadRoomState(); renderAll(); }
+      )
+      .on("postgres_changes",
+        { event:"*", schema:"public", table:"room_members", filter:`room_code=eq.${room}` },
+        async () => { await loadRoomState(); renderAll(); }
+      )
+      .subscribe();
+  }
+
+  // --- Actions ---
+  async function createRoom(){
+    await ensureSignedInAnon();
+
+    room = document.getElementById("roomCode").value.trim().toUpperCase();
+    me = document.getElementById("myName").value.trim();
+    const joinCode = document.getElementById("joinCode").value.trim();
+
+    if (!room || !me || !joinCode) return notify("Bitte Room + Join-Code + Name eingeben.", "warn");
+
+    const { error } = await supabase.rpc("create_room", {
+      p_room: room,
+      p_join_code: joinCode,
+      p_display_name: me
+    });
+
+    if (error){ console.error(error); return notify("Erstellen fehlgeschlagen (RPC/create_room).", "warn"); }
+
+    await loadRoomState();
+    await startRealtime();
+    ui.mode = "me";
+    saveSessionPrefs();
+
+    renderAll();
+    notify("Room erstellt ✅", "ok");
+  }
+
+  async function joinRoom(){
+    await ensureSignedInAnon();
+
+    room = document.getElementById("roomCode").value.trim().toUpperCase();
+    me = document.getElementById("myName").value.trim();
+    const joinCode = document.getElementById("joinCode").value.trim();
+
+if (!room || !me || !joinCode) {
+  return notify("Bitte Room + Join-Code + Name eingeben.", "warn");
+}
+
+
+    const { error } = await supabase.rpc("join_room", {
+      p_room: room,
+      p_join_code: joinCode,
+      p_display_name: me
+    });
+
+   if (error){
+  console.error(error);
+  return notify(`Beitreten fehlgeschlagen: ${error.message}`, "warn");
+}
+
+
+    await loadRoomState();
+    await startRealtime();
+    ui.mode = "me";
+    saveSessionPrefs();
+
+    renderAll();
+    notify("Beigetreten ✅", "ok");
+  }
+
+  async function toggleSlot(key){
+    if (!room) return notify("Bitte zuerst Erstellen oder Beitreten.", "warn");
+    if (!myUserId) return notify("Nicht eingeloggt (anon auth).", "warn");
+
+    const isOn = myHas(key);
+
+    if (!isOn){
+      const { error } = await supabase
+        .from("availability")
+        .upsert({ room_code: room, user_id: myUserId, slot_key: key });
+
+      if (error){ console.error(error); return notify("Speichern fehlgeschlagen (RLS?).", "warn"); }
+    } else {
+      const { error } = await supabase
+        .from("availability")
+        .delete()
+        .match({ room_code: room, user_id: myUserId, slot_key: key });
+
+      if (error){ console.error(error); return notify("Löschen fehlgeschlagen (RLS?).", "warn"); }
+    }
+    // Realtime lädt dann neu
+
+       await loadRoomState();
+       renderAll();
+  }
+
+ // --- Wiring ---
+document.getElementById("createBtn").onclick = () => createRoom().catch(e => console.error(e));
+document.getElementById("joinBtn").onclick = () => joinRoom().catch(e => console.error(e));
+
+// 🔗 Invite-Link Button
+const inviteBtn = document.getElementById("inviteBtn");
+if (inviteBtn){
+  inviteBtn.onclick = async () => {
+    if (!room) return notify("Erst Room erstellen oder beitreten.", "warn");
+
+    const { data: token, error } = await supabase.rpc("create_invite", {
+      p_room: room,
+      p_hours: 72
+    });
+
+    if (error){
+      console.error(error);
+      return notify(`Invite fehlgeschlagen: ${error.message}`, "warn");
+    }
+
+    const url = new URL(location.href);
+    url.searchParams.set("invite", token);
+    url.searchParams.delete("room");
+    url.searchParams.delete("join");
+
+    await navigator.clipboard.writeText(url.toString());
+    notify("Invite-Link kopiert ✅", "ok");
+  };
+}
+
+
+  startDateEl.onchange = () => { ui.startDate = startDateEl.value; renderAll(); };
+  daysCountEl.onchange = () => { ui.daysCount = Number(daysCountEl.value); renderAll(); };
+  hourFromEl.onchange = () => { ui.hourFrom = Number(hourFromEl.value); renderAll(); };
+  hourToEl.onchange = () => { ui.hourTo = Number(hourToEl.value); renderAll(); };
+  slotMinutesEl.onchange = () => { ui.slotMinutes = Number(slotMinutesEl.value); renderAll(); };
+  modeEl.onchange = () => { ui.mode = modeEl.value; renderAll(); };
+
+  // Defaults
+  if (!ui.startDate) ui.startDate = ymd(new Date());
+  renderAll();
+
+// --- Invite Join ---
+window.joinViaInviteIfPresent = async () => {
+  const params = new URLSearchParams(location.search);
+  const token = params.get("invite");
+  if (!token) return;
+
+  await ensureSignedInAnon();
+
+  const name = prompt("Wie heißt du?");
+  if (!name) return;
+
+  const { data: roomCode, error } = await supabase.rpc("redeem_invite", {
+    p_token: token,
+    p_display_name: name.trim()
+  });
+
+  if (error){
+    console.error(error);
+    return notify(`Invite ungültig: ${error.message}`, "warn");
+  }
+
+  room = String(roomCode).toUpperCase();
+  document.getElementById("roomCode").value = room;
+  document.getElementById("myName").value = name.trim();
+
+  await loadRoomState();
+  await startRealtime();
+
+  ui.mode = "me";
+  renderAll();
+  notify("Beigetreten ✅", "ok");
+}; // ✅ HIER wird die Invite-Funktion geschlossen
+
+
+// --- Auto Reconnect ---
+async function autoReconnect(){
+  const saved = loadSessionPrefs();
+  if (!saved.room || !saved.name) return;
+
+  await ensureSignedInAnon();
+
+  room = saved.room;
+  me = saved.name;
+
+  document.getElementById("roomCode").value = room;
+  document.getElementById("myName").value = me;
+
+  await loadRoomState();
+  await startRealtime();
+
+  ui.mode = "me";
+  renderAll();
+  notify(`Wieder verbunden: ${room} ✅`, "ok");
+}
+
+
+// --- Tabs + Init ---
+window.addEventListener("DOMContentLoaded", () => {
+  const panelHome = document.getElementById("panelHome");
+  const panelCalendar = document.getElementById("panelCalendar");
+  const tabHome = document.getElementById("tabHome");
+  const tabCalendar = document.getElementById("tabCalendar");
+
+  if (!panelHome || !panelCalendar || !tabHome || !tabCalendar) {
+    console.error("Tabs nicht gefunden", { panelHome, panelCalendar, tabHome, tabCalendar });
+    return;
+  }
+
+  function setTab(which){
+    const isHome = which === "home";
+    panelHome.style.display = isHome ? "" : "none";
+    panelCalendar.style.display = isHome ? "none" : "";
+    tabHome.classList.toggle("active", isHome);
+    tabCalendar.classList.toggle("active", !isHome);
+  }
+
+  tabHome.onclick = () => setTab("home");
+  tabCalendar.onclick = () => setTab("calendar");
+  setTab("home");
+
+  autoReconnect().catch(console.error);
+  window.joinViaInviteIfPresent().catch(console.error);
+});
+
+
+</script>
+</body>
+</html>
