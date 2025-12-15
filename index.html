@@ -169,15 +169,7 @@
 
         <span style="flex:1"></span>
 
-        <label style="margin:0;">
-          <span class="muted">Ansicht</span><br/>
-          <select id="mode">
-            <option value="overlay" selected>Overlap (alle)</option>
-            <option value="me">Ich (klicken)</option>
-          </select>
-        </label>
-      
-
+        
   <div class="muted" style="margin-top:12px;">Teamübersicht</div>
   <div class="list" id="teamOverview"></div>
 </section>
@@ -187,7 +179,7 @@
 <div class="card" id="roomHeader" style="display:none; margin-bottom:12px;">
   <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
     <div>
-      <div class="players" id="players"></div>	
+	
       <div class="muted" style="font-size:12px;">Team / Room</div>
       <div id="roomTitle" style="font-weight:700; font-size:18px;">–</div>
       <div id="roomMeta" class="muted" style="margin-top:4px;">–</div>
@@ -220,31 +212,24 @@
     </section>
 
     <aside class="card right">
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
-        <div>
-	<label style="margin:0;">
-  <span class="muted">Ansicht</span><br/>
-  <select id="mode">
-    <option value="overlay" selected>Overlap (alle)</option>
-    <option value="me">Ich (klicken)</option>
-  </select>
-</label>
-	<label style="margin:0;">
-  <span class="muted">Ansicht</span><br/>
-  <select id="mode">
-    <option value="overlay" selected>Overlap (alle)</option>
-    <option value="me">Ich (klicken)</option>
-  </select>
-</label>
+       
+<div style="display:flex; flex-direction:column; gap:12px;">
+  <label style="margin:0;">
+    <span class="muted">Ansicht</span><br/>
+    <select id="mode">
+      <option value="overlay" selected>Overlap (alle)</option>
+      <option value="me">Ich (klicken)</option>
+    </select>
+  </label>
 
-          <div style="font-weight:650;">Room Status</div>
-          <div class="muted">Mitglieder & Vorschläge</div>
-        </div>
-      </div>
+  <div>
+    <div style="font-weight:650;">Room Status</div>
+    <div class="muted">Mitglieder & Vorschläge</div>
+  </div>
+</div>
 
-      <div class="muted" style="margin-top:10px;">
               </div>
-
+<div class="players" id="players"></div>
       <hr style="border:none; border-top:1px solid #1b2735; margin:14px 0;">
 
       <div style="font-weight:650;">Top Terminvorschläge</div>
@@ -971,9 +956,10 @@ async function autoReconnect(){
   room = saved.room;
   me = saved.name;
 
-  document.getElementById("roomCode").value = room;
-  document.getElementById("myName").value = me;
-
+  const roomEl = document.getElementById("roomCode").value = room;
+  const nameEl = document.getElementById("myName").value = me;
+  if (roomEl) roomEl.value = room;
+  if (nameEl) nameEl.value = saved.name;
   await loadRoomState();
   await startRealtime();
 
