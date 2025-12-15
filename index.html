@@ -450,30 +450,109 @@ async function copyToClipboard(text){
     return !!(set && set.has(key));
   }
 
-  function renderPlayers(){
-    playersEl.innerHTML = "";
-    if (!room){
-      playersEl.innerHTML = `<div class="muted">Noch nicht verbunden.</div>`;
-      return;
-    }
-    if (!members.length){
-      playersEl.innerHTML = `<div class="muted">Keine Members geladen.</div>`;
-      return;
-    }
-    for (const m of members){
-      const set = availabilityByUser.get(m.user_id) || new Set();
-      const row = document.createElement("div");
-      row.className = "pitem";
-      row.innerHTML = `
-        <div>
-          <b>${escapeHtml(m.display_name)}</b>
-          <div class="muted">${set.size} Slots</div>
-        </div>
-        <div class="muted">${m.user_id === myUserId ? "du" : ""}</div>
-      `;
-      playersEl.appendChild(row);
+function parseSlotKey(key){
+  // key: "YYYY-MM-DD|HH:MM"
+  const [dateStr, timeStr] = key.split("|");
+  const [hh, mm] = timeStr.split(":").map(Number);
+  return { dateStr, hh, mm };
+}
+
+function slotsForUserInCurrentRange(userId){
+  const set = availabilityByUser.get(userId) || new Set();
+
+  // gültige keys für aktuellen sichtbaren Bereich
+  const valid = new Set();
+  for (const d of getDays()){
+    const dateStr = ymd(d);
+    for (const [h,m] of getTimes()){
+      valid.add(slotKey(dateStr, h, m));
     }
   }
+
+  const arr = [];
+  for (const key of set){
+    if (!valid.has(key)) continue;
+    const { dateStr, hh, mm } = parseSlotKey(key);
+    arr.push({ key, dateStr, hh, mm });
+  }
+
+  arr.sort((a,b) =>
+    (a.dateStr.localeCompare(b.dateStr)) ||
+    (a.hh - b.hh) ||
+    (a.mm - b.mm)
+  );
+
+  return arr;
+}
+
+function initials(name){
+  const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+  const a = (parts[0]?.[0] || "").toUpperCase();
+  const b = (parts[1]?.[0] || "").toUpperCase();
+  return (a + b) || a || "?";
+}
+
+function availableMembersForSlot(dateStr,h,m){
+  const key = slotKey(dateStr,h,m);
+  const res = [];
+  for (const mem of members){
+    const set = availabilityByUser.get(mem.user_id);
+    if (set && set.has(key)) res.push(mem);
+  }
+  return res;
+}
+
+
+
+function renderPlayers(){
+  playersEl.innerHTML = "";
+  if (!room){
+    playersEl.innerHTML = `<div class="muted">Noch nicht verbunden.</div>`;
+    return;
+  }
+  if (!members.length){
+    playersEl.innerHTML = `<div class="muted">Keine Members geladen.</div>`;
+    return;
+  }
+
+  for (const m of members){
+    const set = availabilityByUser.get(m.user_id) || new Set();
+    const inRange = slotsForUserInCurrentRange(m.user_id);
+
+    const row = document.createElement("div");
+    row.className = "pitem";
+
+    // Dropdown (Details)
+    const detailsHtml = `
+      <details style="margin-top:8px;">
+        <summary class="muted" style="cursor:pointer;">Slots anzeigen (${inRange.length} in aktueller Ansicht)</summary>
+        <div style="margin-top:8px; display:flex; flex-direction:column; gap:6px;">
+          ${inRange.length ? inRange.map(s => {
+            const d = new Date(s.dateStr + "T00:00:00");
+            return `<div class="muted">${fmtDay(d)} • ${pad(s.hh)}:${pad(s.mm)}</div>`;
+          }).join("") : `<div class="muted">Keine Slots in diesem Zeitraum.</div>`}
+        </div>
+      </details>
+    `;
+
+    row.innerHTML = `
+      <div style="width:100%;">
+        <div style="display:flex; justify-content:space-between; gap:10px;">
+          <div>
+            <b>${escapeHtml(m.display_name)}</b>
+            <div class="muted">${set.size} Slots (gesamt)</div>
+          </div>
+          <div class="muted">${m.user_id === myUserId ? "du" : ""}</div>
+        </div>
+        ${detailsHtml}
+      </div>
+    `;
+
+    playersEl.appendChild(row);
+  }
+}
+
+
 
   function renderSuggestions(){
     const days = getDays();
@@ -584,13 +663,32 @@ function renderTabLabels(){
           div.textContent = on ? "✓" : "";
           div.style.background = on ? "rgba(34, 187, 119, 0.14)" : "transparent";
           div.onclick = () => toggleSlot(key);
-        } else {
-          const c = overlapCount(dateStr,h,m);
-          div.textContent = c ? String(c) : "";
-          const ratio = members.length ? c/members.length : 0;
-          div.style.background = ratio ? `rgba(120, 170, 255, ${0.08 + ratio*0.38})` : "transparent";
-          div.onclick = () => notify("Wechsle auf 'Ich (klicken)' um Slots zu setzen.", "warn");
-        }
+       } else {
+  const avail = availableMembersForSlot(dateStr,h,m);
+  const c = avail.length;
+
+  if (c){
+    const names = avail.map(x => x.display_name);
+    const short = avail.slice(0,3).map(x => initials(x.display_name)).join(" ");
+    const more = c > 3 ? ` +${c-3}` : "";
+
+    div.innerHTML = `
+      <div style="display:flex; flex-direction:column; line-height:1; gap:4px; align-items:center;">
+        <div style="font-weight:650;">${c}</div>
+        <div class="muted" style="font-size:11px;">${short}${more}</div>
+      </div>
+    `;
+    div.title = names.join(", ");
+  } else {
+    div.textContent = "";
+    div.title = "";
+  }
+
+  const ratio = members.length ? c/members.length : 0;
+  div.style.background = ratio ? `rgba(120, 170, 255, ${0.08 + ratio*0.38})` : "transparent";
+  div.onclick = () => notify("Wechsle auf 'Ich (klicken)' um Slots zu setzen.", "warn");
+}
+
 
         td.appendChild(div);
         tr.appendChild(td);
