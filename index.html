@@ -271,8 +271,6 @@
     </div>
   </div>
 
-</body>
-
 
 
 <script type="module">
@@ -310,6 +308,19 @@ async function askName(){
 
 
 window.supabase = supabase;
+
+ function notify(msg, kind="") {
+  const el = document.getElementById("status");
+  if (el) {
+    el.textContent = msg;
+    el.className = "muted " + kind;
+    setTimeout(()=>{ el.textContent=""; el.className="muted"; }, 4500);
+  } else {
+    alert(msg);
+  }
+  console.log("[notify]", kind, msg);
+}
+
 
  let room = "";
   let me = "";
@@ -388,20 +399,6 @@ supabase.auth.onAuthStateChange(async (_event, session) => {
   function forgetSessionPrefs(){
     localStorage.removeItem(LS_KEY);
 }
-
-
- function notify(msg, kind="") {
-  const el = document.getElementById("status");
-  if (el) {
-    el.textContent = msg;
-    el.className = "muted " + kind;
-    setTimeout(()=>{ el.textContent=""; el.className="muted"; }, 4500);
-  } else {
-    alert(msg);
-  }
-  console.log("[notify]", kind, msg);
-}
-
 
   function escapeHtml(s){
     return String(s)
@@ -891,22 +888,45 @@ async function loadMyProfile(user){
 
   // --- Actions ---
 
+
+
 async function createRoom() {
   if (joining) return;
   joining = true;
 
   try {
-    await ensureSignedIn(); // oder ensureSignedInAnon() wenn du noch nicht umgestellt hast
-
-    room = document.getElementById("roomCode").value.trim().toUpperCase();
-    me = document.getElementById("myName").value.trim();
-    const joinCode = document.getElementById("joinCode").value.trim();
-
-    if (!room || !me || !joinCode) {
-      notify("Bitte Room + Join-Code + Name eingeben.", "warn");
+    // 1) Auth sicherstellen
+    let user;
+    try {
+      user = await ensureSignedIn();
+    } catch (e) {
+      // ensureSignedIn zeigt bereits Auth-Modal
+      notify("Bitte zuerst einloggen.", "warn");
       return;
     }
 
+    // 2) Profil laden (setzt global: me + myUserId)
+    try {
+      await loadMyProfile(user); // setzt `me` und disabled myName
+    } catch (e) {
+      console.error("loadMyProfile failed:", e);
+      notify("Profil konnte nicht geladen werden (Name fehlt?).", "warn");
+      return;
+    }
+
+    // 3) Inputs lesen
+    const roomInput = document.getElementById("roomCode");
+    const joinInput = document.getElementById("joinCode");
+
+    room = (roomInput?.value || "").trim().toUpperCase();
+    const joinCode = (joinInput?.value || "").trim();
+
+    if (!room || !joinCode) {
+      notify("Bitte Room + Join-Code eingeben.", "warn");
+      return;
+    }
+
+    // 4) RPC
     const { data, error } = await supabase.rpc("create_room", {
       p_room: room,
       p_join_code: joinCode,
@@ -914,21 +934,22 @@ async function createRoom() {
     });
 
     if (error) {
-      console.error("create_room error:", error);
+      console.error("RPC create_room error:", error);
       notify(`Erstellen fehlgeschlagen: ${error.message}`, "warn");
       return;
     }
 
     console.log("create_room ok:", data);
 
+    // 5) State laden + Realtime
     await loadRoomState();
     await startRealtime();
+
     ui.mode = "me";
     saveSessionPrefs();
-
     renderAll();
-    notify("Room erstellt ✅", "ok");
 
+    notify("Room erstellt ✅", "ok");
   } catch (e) {
     console.error("createRoom exception:", e);
     notify("Erstellen: Unerwarteter Fehler (siehe Konsole).", "warn");
@@ -942,17 +963,37 @@ async function joinRoom() {
   joining = true;
 
   try {
-    await ensureSignedIn(); // oder ensureSignedInAnon()
-
-    room = document.getElementById("roomCode").value.trim().toUpperCase();
-    me = document.getElementById("myName").value.trim();
-    const joinCode = document.getElementById("joinCode").value.trim();
-
-    if (!room || !me || !joinCode) {
-      notify("Bitte Room + Join-Code + Name eingeben.", "warn");
+    // 1) Auth sicherstellen
+    let user;
+    try {
+      user = await ensureSignedIn();
+    } catch (e) {
+      notify("Bitte zuerst einloggen.", "warn");
       return;
     }
 
+    // 2) Profil laden (setzt global: me + myUserId)
+    try {
+      await loadMyProfile(user);
+    } catch (e) {
+      console.error("loadMyProfile failed:", e);
+      notify("Profil konnte nicht geladen werden (Name fehlt?).", "warn");
+      return;
+    }
+
+    // 3) Inputs lesen
+    const roomInput = document.getElementById("roomCode");
+    const joinInput = document.getElementById("joinCode");
+
+    room = (roomInput?.value || "").trim().toUpperCase();
+    const joinCode = (joinInput?.value || "").trim();
+
+    if (!room || !joinCode) {
+      notify("Bitte Room + Join-Code eingeben.", "warn");
+      return;
+    }
+
+    // 4) RPC
     const { data, error } = await supabase.rpc("join_room", {
       p_room: room,
       p_join_code: joinCode,
@@ -960,22 +1001,25 @@ async function joinRoom() {
     });
 
     if (error) {
-      console.error("join_room error:", error);
+      console.error("RPC join_room error:", error);
       notify(`Beitreten fehlgeschlagen: ${error.message}`, "warn");
       return;
     }
 
     console.log("join_room ok:", data);
 
+    // 5) State laden + Realtime
     await loadRoomState();
     await startRealtime();
+
     ui.mode = "me";
     saveSessionPrefs();
-
     renderAll();
-    notify("Beigetreten ✅", "ok");
-  
 
+    notify("Beigetreten ✅", "ok");
+
+    // Optional: Wenn du Tabs benutzt und setTab im Scope ist:
+    // setTab("calendar");
   } catch (e) {
     console.error("joinRoom exception:", e);
     notify("Beitreten: Unerwarteter Fehler (siehe Konsole).", "warn");
