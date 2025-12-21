@@ -249,10 +249,6 @@
 </div>
 
 
-<body>
-
-  <!-- …dein bestehendes HTML… -->
-
   <!-- ✅ Auth-Modal hier einfügen -->
   <div id="authModal" class="modal" style="display:none;">
     <div class="modalCard">
@@ -274,11 +270,6 @@
       <button id="authLogout" style="width:100%; display:none;">Logout</button>
     </div>
   </div>
-
-  <!-- ✅ und erst danach dein Script -->
-  <script type="module">
-    // dein JS …
-  </script>
 
 </body>
 
@@ -319,6 +310,13 @@ async function askName(){
 
 
 window.supabase = supabase;
+
+ let room = "";
+  let me = "";
+  let myUserId = "";
+  let realtimeChannel = null;
+  let joining = false;
+
 
 const authEmail = document.getElementById("authEmail");
 const authPw = document.getElementById("authPw");
@@ -416,14 +414,8 @@ supabase.auth.onAuthStateChange(async (_event, session) => {
 
   const slotKey = (dateStr, hh, mm) => `${dateStr}|${pad(hh)}:${pad(mm)}`;
 
-  // Global room/session
-  let room = "";
-  let me = "";
-  let myUserId = "";
-  let realtimeChannel = null;
-  let joining = false;
 
-  // Shared state loaded from DB
+   // Shared state loaded from DB
   let members = []; // [{user_id, display_name}]
   let availabilityByUser = new Map(); // user_id -> Set(slot_key)
 
@@ -982,7 +974,7 @@ async function joinRoom() {
 
     renderAll();
     notify("Beigetreten ✅", "ok");
-    setTab("calendar");
+  
 
   } catch (e) {
     console.error("joinRoom exception:", e);
@@ -1122,11 +1114,12 @@ async function autoReconnect(){
 
   room = saved.room;
 
+const roomEl = document.getElementById("roomCode");
+if (roomEl) roomEl.value = room;
 
-  const roomEl = document.getElementById("roomCode").value = room;
-  const nameEl = document.getElementById("myName").value = me;
-  if (roomEl) roomEl.value = room;
-  if (nameEl) nameEl.value = saved.name;
+const nameEl = document.getElementById("myName");
+if (nameEl) nameEl.value = me;
+
   await loadRoomState();
   await startRealtime();
 
