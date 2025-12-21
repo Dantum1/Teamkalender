@@ -116,6 +116,10 @@
   <div class="toolbar" id="homeToolbar">
  
        
+	<label style="margin:0;">
+  	   <span class="muted">Room</span><br/>
+  	   <input id="roomCode" placeholder="TEAM1" style="width:140px; text-transform:uppercase;">
+	</label>
 
         <label style="margin:0;">
           <span class="muted">Join-Code</span><br/>
@@ -245,6 +249,41 @@
 </div>
 
 
+<body>
+
+  <!-- …dein bestehendes HTML… -->
+
+  <!-- ✅ Auth-Modal hier einfügen -->
+  <div id="authModal" class="modal" style="display:none;">
+    <div class="modalCard">
+      <h3>Login</h3>
+      <p class="muted">Melde dich an, damit dein Name gespeichert bleibt.</p>
+
+      <label>E-Mail</label>
+      <input id="authEmail" type="email" placeholder="you@company.com">
+
+      <label>Passwort</label>
+      <input id="authPw" type="password" placeholder="••••••••">
+
+      <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
+        <button id="authSignup">Registrieren</button>
+        <button id="authLogin">Login</button>
+      </div>
+
+      <hr style="border:none; border-top:1px solid #1b2735; margin:14px 0;">
+      <button id="authLogout" style="width:100%; display:none;">Logout</button>
+    </div>
+  </div>
+
+  <!-- ✅ und erst danach dein Script -->
+  <script type="module">
+    // dein JS …
+  </script>
+
+</body>
+
+
+
 <script type="module">
 
 // ===== Name Modal Helper =====
@@ -281,6 +320,56 @@ async function askName(){
 
 window.supabase = supabase;
 
+const authEmail = document.getElementById("authEmail");
+const authPw = document.getElementById("authPw");
+const authLogin = document.getElementById("authLogin");
+const authSignup = document.getElementById("authSignup");
+const authLogout = document.getElementById("authLogout");
+
+authLogin.onclick = async () => {
+  const { error } = await supabase.auth.signInWithPassword({
+    email: authEmail.value.trim(),
+    password: authPw.value
+  });
+  if (error) return notify(`Login: ${error.message}`, "warn");
+};
+
+authSignup.onclick = async () => {
+  const { error } = await supabase.auth.signUp({
+    email: authEmail.value.trim(),
+    password: authPw.value
+  });
+  if (error) return notify(`Signup: ${error.message}`, "warn");
+  notify("Registriert ✅ Bitte E-Mail ggf. bestätigen.", "ok");
+};
+
+authLogout.onclick = async () => {
+  await supabase.auth.signOut();
+};
+
+supabase.auth.onAuthStateChange(async (_event, session) => {
+  if (session?.user) {
+    authLogout.style.display = "";
+    hideAuth();
+    myUserId = session.user.id;
+
+    try {
+      await loadMyProfile(session.user);
+      // optional: autoReconnect oder Room-UI enable
+    } catch (e) {
+      console.error(e);
+      notify("Profil konnte nicht geladen werden.", "warn");
+    }
+  } else {
+    authLogout.style.display = "none";
+    showAuth();
+    myUserId = "";
+    me = "";
+  }
+});
+
+
+
   // --- UI / State ---
   const pad = n => String(n).padStart(2,"0");
   const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -290,10 +379,7 @@ window.supabase = supabase;
   const LS_KEY = "teamAvail:v1";
 
   function saveSessionPrefs(){
-  localStorage.setItem(LS_KEY, JSON.stringify({
-    room,
-    name: document.getElementById("myName").value.trim()
-  }));
+  localStorage.setItem(LS_KEY, JSON.stringify({room }));
 }
 
   function loadSessionPrefs(){
@@ -703,22 +789,62 @@ function renderTabLabels(){
   }
 
   // --- DB load ---
-  async function ensureSignedInAnon(){
-    const { data: sess } = await supabase.auth.getSession();
-    if (sess?.session?.user?.id){
-      myUserId = sess.session.user.id;
-      return;
-    }
-    const { error } = await supabase.auth.signInAnonymously();
-    if (error) {
-      console.error(error);
-      notify("Auth fehlgeschlagen (Anonymous evtl. deaktiviert).", "warn");
-      throw error;
-    }
-    const { data: sess2 } = await supabase.auth.getSession();
-    myUserId = sess2?.session?.user?.id || "";
-    if (!myUserId) throw new Error("Keine Session nach anon login.");
+async function ensureSignedIn() {
+  const { data: { session }, error } = await supabase.auth.getSession();
+  if (error) throw error;
+
+  if (!session?.user) {
+    showAuth();
+    throw new Error("Not signed in");
   }
+
+  myUserId = session.user.id;
+  return session.user;
+}
+
+function showAuth(){
+  document.getElementById("authModal").style.display = "flex";
+}
+function hideAuth(){
+  document.getElementById("authModal").style.display = "none";
+}
+
+async function loadMyProfile(user){
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("display_name")
+    .eq("id", user.id)
+    .single();
+
+  if (error) throw error;
+
+  let displayName = (data?.display_name || "").trim();
+
+  // wenn noch kein Name gesetzt: einmalig abfragen und speichern
+  if (!displayName) {
+    const asked = await askName();
+    if (!asked) throw new Error("No display name provided");
+    displayName = asked.trim();
+
+    const { error: upErr } = await supabase
+      .from("profiles")
+      .update({ display_name: displayName })
+      .eq("id", user.id);
+
+    if (upErr) throw upErr;
+  }
+
+  me = displayName;
+  // optional: Feld anzeigen (read-only) statt Pflichtfeld
+  const myNameEl = document.getElementById("myName");
+  if (myNameEl) {
+    myNameEl.value = displayName;
+    myNameEl.disabled = true;
+  }
+
+  return displayName;
+}
+
 
   async function loadRoomState(){
     // Members
@@ -775,7 +901,8 @@ try {
   joining = false;
 }
 
-    await ensureSignedInAnon();
+    const user = await ensureSignedIn();
+    await loadMyProfile(user);
 
     room = document.getElementById("roomCode").value.trim().toUpperCase();
     me = document.getElementById("myName").value.trim();
@@ -809,7 +936,8 @@ try {
   joining = false;
 }
 
-    await ensureSignedInAnon();
+    const user = await ensureSignedIn();
+    await loadMyProfile(user);
 
     room = document.getElementById("roomCode").value.trim().toUpperCase();
     me = document.getElementById("myName").value.trim();
@@ -917,14 +1045,14 @@ window.joinViaInviteIfPresent = async () => {
   const token = params.get("invite");
   if (!token) return;
 
-  await ensureSignedInAnon();
+  const user = await ensureSignedIn();
+  await loadMyProfile(user);
 
-  const name = await askName();
-  if (!name) return;
+
 
   const { data: roomCode, error } = await supabase.rpc("redeem_invite", {
     p_token: token,
-    p_display_name: name.trim()
+    p_display_name: me
   });
 
   if (error){
@@ -934,7 +1062,7 @@ window.joinViaInviteIfPresent = async () => {
 
   room = String(roomCode).toUpperCase();
   document.getElementById("roomCode").value = room;
-  document.getElementById("myName").value = name.trim();
+  if (roomInput) roomInput.value = room;
 
   await loadRoomState();
   await startRealtime();
@@ -949,12 +1077,13 @@ window.joinViaInviteIfPresent = async () => {
 // --- Auto Reconnect ---
 async function autoReconnect(){
   const saved = loadSessionPrefs();
-  if (!saved.room || !saved.name) return;
+  if (!saved.room) return;
 
-  await ensureSignedInAnon();
+  const  user = await ensureSignedIn();
+  await loadMyProfile(user);
 
   room = saved.room;
-  me = saved.name;
+
 
   const roomEl = document.getElementById("roomCode").value = room;
   const nameEl = document.getElementById("myName").value = me;
