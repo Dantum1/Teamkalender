@@ -392,12 +392,18 @@ supabase.auth.onAuthStateChange(async (_event, session) => {
 }
 
 
-  function notify(msg, kind="") {
-    const el = document.getElementById("status");
+ function notify(msg, kind="") {
+  const el = document.getElementById("status");
+  if (el) {
     el.textContent = msg;
     el.className = "muted " + kind;
     setTimeout(()=>{ el.textContent=""; el.className="muted"; }, 4500);
+  } else {
+    alert(msg);
   }
+  console.log("[notify]", kind, msg);
+}
+
 
   function escapeHtml(s){
     return String(s)
@@ -896,9 +902,14 @@ async function loadMyProfile(user){
 if (joining) return;
 joining = true;
 try {
-  // ... dein bisheriger code ...
+  await ensureSignedIn()
+ } catch (e) {
+    console.error(e);
+    notify(`Create Error: ${e.message || e}`, "warn");
+    throw e;
 } finally {
   joining = false;
+}
 }
 
     const user = await ensureSignedIn();
@@ -931,9 +942,14 @@ try {
 if (joining) return;
 joining = true;
 try {
-  // ... dein bisheriger code ...
+  await ensureSignedIn();
+  } catch (e) {
+    console.error(e);
+    notify(`Create Error: ${e.message || e}`, "warn");
+    throw e;
 } finally {
   joining = false;
+}
 }
 
     const user = await ensureSignedIn();
@@ -998,9 +1014,26 @@ if (!room || !me || !joinCode) {
   }
 
  // --- Wiring ---
-document.getElementById("createBtn").onclick = () => createRoom().catch(e => console.error(e));
-document.getElementById("joinBtn").onclick = () => joinRoom().catch(e => console.error(e));
+const createBtn = document.getElementById("createBtn");
+const joinBtn = document.getElementById("joinBtn");
 
+if (!createBtn || !joinBtn) {
+  console.error("Buttons nicht gefunden", { createBtn, joinBtn });
+} else {
+  createBtn.addEventListener("click", async (ev) => {
+    ev.preventDefault();
+    console.log("createBtn clicked");
+    try { await createRoom(); }
+    catch (e) { console.error("createRoom failed:", e); }
+  });
+
+  joinBtn.addEventListener("click", async (ev) => {
+    ev.preventDefault();
+    console.log("joinBtn clicked");
+    try { await joinRoom(); }
+    catch (e) { console.error("joinRoom failed:", e); }
+  });
+}
 // 🔗 Invite-Link Button
 const inviteBtn = document.getElementById("inviteBtn");
 if (inviteBtn){
