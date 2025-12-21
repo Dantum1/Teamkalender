@@ -888,33 +888,20 @@ async function loadMyProfile(user){
 
   // --- Actions ---
 
-
-
 async function createRoom() {
-  if (joining) return;
+  console.log("[createRoom] start");
+  if (joining) return console.log("[createRoom] blocked: joining=true");
   joining = true;
 
   try {
-    // 1) Auth sicherstellen
-    let user;
-    try {
-      user = await ensureSignedIn();
-    } catch (e) {
-      // ensureSignedIn zeigt bereits Auth-Modal
-      notify("Bitte zuerst einloggen.", "warn");
-      return;
-    }
+    // 1) Auth + Profil laden (setzt me + myUserId)
+    const user = await ensureSignedIn();
+    console.log("[createRoom] signed in as", user?.id);
 
-    // 2) Profil laden (setzt global: me + myUserId)
-    try {
-      await loadMyProfile(user); // setzt `me` und disabled myName
-    } catch (e) {
-      console.error("loadMyProfile failed:", e);
-      notify("Profil konnte nicht geladen werden (Name fehlt?).", "warn");
-      return;
-    }
+    await loadMyProfile(user);
+    console.log("[createRoom] profile loaded, me=", me);
 
-    // 3) Inputs lesen
+    // 2) Inputs lesen
     const roomInput = document.getElementById("roomCode");
     const joinInput = document.getElementById("joinCode");
 
@@ -923,10 +910,12 @@ async function createRoom() {
 
     if (!room || !joinCode) {
       notify("Bitte Room + Join-Code eingeben.", "warn");
+      console.log("[createRoom] missing inputs", { room, joinCode });
       return;
     }
 
-    // 4) RPC
+    // 3) RPC call
+    console.log("[createRoom] calling rpc create_room", { room, me });
     const { data, error } = await supabase.rpc("create_room", {
       p_room: room,
       p_join_code: joinCode,
@@ -934,14 +923,14 @@ async function createRoom() {
     });
 
     if (error) {
-      console.error("RPC create_room error:", error);
+      console.error("[createRoom] rpc error", error);
       notify(`Erstellen fehlgeschlagen: ${error.message}`, "warn");
       return;
     }
 
-    console.log("create_room ok:", data);
+    console.log("[createRoom] rpc ok", data);
 
-    // 5) State laden + Realtime
+    // 4) State laden + realtime starten
     await loadRoomState();
     await startRealtime();
 
@@ -950,38 +939,29 @@ async function createRoom() {
     renderAll();
 
     notify("Room erstellt ✅", "ok");
+    console.log("[createRoom] done");
   } catch (e) {
-    console.error("createRoom exception:", e);
-    notify("Erstellen: Unerwarteter Fehler (siehe Konsole).", "warn");
+    console.error("[createRoom] exception", e);
+    notify("Erstellen: Fehler (Details in Konsole).", "warn");
   } finally {
     joining = false;
   }
 }
 
 async function joinRoom() {
-  if (joining) return;
+  console.log("[joinRoom] start");
+  if (joining) return console.log("[joinRoom] blocked: joining=true");
   joining = true;
 
   try {
-    // 1) Auth sicherstellen
-    let user;
-    try {
-      user = await ensureSignedIn();
-    } catch (e) {
-      notify("Bitte zuerst einloggen.", "warn");
-      return;
-    }
+    // 1) Auth + Profil laden
+    const user = await ensureSignedIn();
+    console.log("[joinRoom] signed in as", user?.id);
 
-    // 2) Profil laden (setzt global: me + myUserId)
-    try {
-      await loadMyProfile(user);
-    } catch (e) {
-      console.error("loadMyProfile failed:", e);
-      notify("Profil konnte nicht geladen werden (Name fehlt?).", "warn");
-      return;
-    }
+    await loadMyProfile(user);
+    console.log("[joinRoom] profile loaded, me=", me);
 
-    // 3) Inputs lesen
+    // 2) Inputs lesen
     const roomInput = document.getElementById("roomCode");
     const joinInput = document.getElementById("joinCode");
 
@@ -990,10 +970,12 @@ async function joinRoom() {
 
     if (!room || !joinCode) {
       notify("Bitte Room + Join-Code eingeben.", "warn");
+      console.log("[joinRoom] missing inputs", { room, joinCode });
       return;
     }
 
-    // 4) RPC
+    // 3) RPC call
+    console.log("[joinRoom] calling rpc join_room", { room, me });
     const { data, error } = await supabase.rpc("join_room", {
       p_room: room,
       p_join_code: joinCode,
@@ -1001,14 +983,14 @@ async function joinRoom() {
     });
 
     if (error) {
-      console.error("RPC join_room error:", error);
+      console.error("[joinRoom] rpc error", error);
       notify(`Beitreten fehlgeschlagen: ${error.message}`, "warn");
       return;
     }
 
-    console.log("join_room ok:", data);
+    console.log("[joinRoom] rpc ok", data);
 
-    // 5) State laden + Realtime
+    // 4) State laden + realtime starten
     await loadRoomState();
     await startRealtime();
 
@@ -1017,16 +999,15 @@ async function joinRoom() {
     renderAll();
 
     notify("Beigetreten ✅", "ok");
-
-    // Optional: Wenn du Tabs benutzt und setTab im Scope ist:
-    // setTab("calendar");
+    console.log("[joinRoom] done");
   } catch (e) {
-    console.error("joinRoom exception:", e);
-    notify("Beitreten: Unerwarteter Fehler (siehe Konsole).", "warn");
+    console.error("[joinRoom] exception", e);
+    notify("Beitreten: Fehler (Details in Konsole).", "warn");
   } finally {
     joining = false;
   }
 }
+
 
   async function toggleSlot(key){
     if (!room) return notify("Bitte zuerst Erstellen oder Beitreten.", "warn");
