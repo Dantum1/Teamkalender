@@ -783,27 +783,28 @@ function renderTabLabels(){
     renderTable();
   }
 
-  // --- DB load ---
-async function ensureSignedIn() {
-  console.log("[ensureSignedIn] getSession...");
+ async function ensureSignedIn() {
+  console.log("[ensureSignedIn] start");
+
   const { data, error } = await supabase.auth.getSession();
+
+  console.log("[ensureSignedIn] getSession result:", data, error);
+
   if (error) {
-    console.error("[ensureSignedIn] getSession error", error);
+    console.error("[ensureSignedIn] error:", error);
     throw error;
   }
 
-  const session = data?.session;
-  console.log("[ensureSignedIn] session", session);
-
-  if (!session?.user) {
-    console.log("[ensureSignedIn] no session -> showAuth()");
+  if (!data || !data.session) {
+    console.warn("[ensureSignedIn] NO SESSION → showAuth()");
     showAuth();
     throw new Error("Not signed in");
   }
 
-  myUserId = session.user.id;
-  console.log("[ensureSignedIn] ok user", myUserId);
-  return session.user;
+  console.log("[ensureSignedIn] session OK, user:", data.session.user);
+
+  myUserId = data.session.user.id;
+  return data.session.user;
 }
 
 function showAuth(){
