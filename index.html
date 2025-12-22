@@ -302,18 +302,20 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL = "https://ipsxbbbdnsufpfbqsqqv.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlwc3hiYmJkbnN1ZnBmYnFzcXF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NjUzNTYsImV4cCI6MjA4MTE0MTM1Nn0.JCDyw6e9stz-mQpUp-mqjzet9-NeyofKSYYiD-ZJHJo";
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true
+const supabase = createClient(
+   SUPABASE_URL,
+   SUPABASE_ANON_KEY,
+   {
+     auth: {
+	persistSession: true,
+	autoRefreshToken: true,
+	detectSessionInUrl: true
+      }
     }
-  });
+);
 
 window.supabase = supabase;
 
-
-window.supabase = supabase;
 
  function notify(msg, kind="") {
   const el = document.getElementById("status");
@@ -362,26 +364,6 @@ authLogout.onclick = async () => {
   await supabase.auth.signOut();
 };
 
-supabase.auth.onAuthStateChange(async (_event, session) => {
-  if (session?.user) {
-    authLogout.style.display = "";
-    hideAuth();
-    myUserId = session.user.id;
-
-    try {
-      await loadMyProfile(session.user);
-      // optional: autoReconnect oder Room-UI enable
-    } catch (e) {
-      console.error(e);
-      notify("Profil konnte nicht geladen werden.", "warn");
-    }
-  } else {
-    authLogout.style.display = "none";
-    showAuth();
-    myUserId = "";
-    me = "";
-  }
-});
 
 
 
@@ -792,69 +774,22 @@ function renderTabLabels(){
 async function ensureSignedIn() {
   console.log("[ensureSignedIn] start");
 
-  // 1) getSession mit Timeout absichern
-  const withTimeout = (p, ms, label) =>
-    Promise.race([
-      p,
-      new Promise((_, rej) =>
-        setTimeout(() => rej(new Error(`${label} timeout after ${ms}ms`)), ms)
-      )
-    ]);
+  const { data: { session }, error } = await supabase.auth.getSession();
 
-  let session = null;
+  console.log("[ensureSignedIn] getSession:", { hasSession: !!session, error });
 
-  try {
-    const { data, error } = await withTimeout(
-      supabase.auth.getSession(),
-      2500,
-      "getSession"
-    );
+  if (error) throw error;
 
-    if (error) {
-      console.error("[ensureSignedIn] getSession error:", error);
-      throw error;
-    }
-
-    session = data?.session || null;
-    console.log("[ensureSignedIn] getSession session?", !!session);
-  } catch (e) {
-    console.warn("[ensureSignedIn] getSession failed:", e.message);
-  }
-
-  // 2) Fallback: getUser (holt User auch wenn Session-Probleme)
-  if (!session) {
-    try {
-      const { data, error } = await withTimeout(
-        supabase.auth.getUser(),
-        2500,
-        "getUser"
-      );
-
-      if (error) {
-        console.warn("[ensureSignedIn] getUser error:", error);
-      } else if (data?.user) {
-        console.log("[ensureSignedIn] getUser ok:", data.user.id);
-        myUserId = data.user.id;
-        return data.user;
-      }
-    } catch (e) {
-      console.warn("[ensureSignedIn] getUser failed:", e.message);
-    }
-  }
-
-  // 3) Wenn Session vorhanden: User zurückgeben
   if (session?.user) {
     myUserId = session.user.id;
-    console.log("[ensureSignedIn] session OK user:", myUserId);
+    console.log("[ensureSignedIn] OK userId:", myUserId);
     return session.user;
   }
 
-  // 4) Nicht eingeloggt → Auth UI zeigen
   console.warn("[ensureSignedIn] NOT signed in -> showAuth()");
   showAuth();
   throw new Error("Not signed in");
 }
-
 
 
 function showAuth(){
@@ -991,54 +926,41 @@ async function requireAuthAndProfile() {
 }
 
 
-
 async function createRoom() {
   if (joining) return;
   joining = true;
 
   try {
-    console.log("[createRoom] start");
-
     const user = await ensureSignedIn();
     await loadMyProfile(user);
 
     const roomInput = document.getElementById("roomCode");
     const joinInput = document.getElementById("joinCode");
 
-    room = (roomInput?.value || "").trim().toUpperCase();
-    const joinCode = (joinInput?.value || "").trim();
+    room = roomInput.value.trim().toUpperCase();
+    const joinCode = joinInput.value.trim();
 
     if (!room || !joinCode) {
       notify("Bitte Room + Join-Code eingeben.", "warn");
       return;
     }
 
-    console.log("[createRoom] rpc create_room", { room, me });
-
-    const { data, error } = await supabase.rpc("create_room", {
+    const { error } = await supabase.rpc("create_room", {
       p_room: room,
       p_join_code: joinCode,
       p_display_name: me
     });
 
-    if (error) {
-      console.error("[createRoom] create_room error:", error);
-      notify(`Erstellen fehlgeschlagen: ${error.message}`, "warn");
-      return;
-    }
-
-    console.log("[createRoom] create_room ok:", data);
+    if (error) throw error;
 
     await loadRoomState();
     await startRealtime();
-
-    ui.mode = "me";
-    saveSessionPrefs();
     renderAll();
+
     notify("Room erstellt ✅", "ok");
   } catch (e) {
-    console.error("[createRoom] exception:", e);
-    notify(`Erstellen: ${e.message || e}`, "warn");
+    console.error(e);
+    notify(e.message, "warn");
   } finally {
     joining = false;
   }
@@ -1049,48 +971,36 @@ async function joinRoom() {
   joining = true;
 
   try {
-    console.log("[joinRoom] start");
-
     const user = await ensureSignedIn();
     await loadMyProfile(user);
 
     const roomInput = document.getElementById("roomCode");
     const joinInput = document.getElementById("joinCode");
 
-    room = (roomInput?.value || "").trim().toUpperCase();
-    const joinCode = (joinInput?.value || "").trim();
+    room = roomInput.value.trim().toUpperCase();
+    const joinCode = joinInput.value.trim();
 
     if (!room || !joinCode) {
       notify("Bitte Room + Join-Code eingeben.", "warn");
       return;
     }
 
-    console.log("[joinRoom] rpc join_room", { room, me });
-
-    const { data, error } = await supabase.rpc("join_room", {
+    const { error } = await supabase.rpc("join_room", {
       p_room: room,
       p_join_code: joinCode,
       p_display_name: me
     });
 
-    if (error) {
-      console.error("[joinRoom] join_room error:", error);
-      notify(`Beitreten fehlgeschlagen: ${error.message}`, "warn");
-      return;
-    }
-
-    console.log("[joinRoom] join_room ok:", data);
+    if (error) throw error;
 
     await loadRoomState();
     await startRealtime();
-
-    ui.mode = "me";
-    saveSessionPrefs();
     renderAll();
+
     notify("Beigetreten ✅", "ok");
   } catch (e) {
-    console.error("[joinRoom] exception:", e);
-    notify(`Beitreten: ${e.message || e}`, "warn");
+    console.error(e);
+    notify(e.message, "warn");
   } finally {
     joining = false;
   }
