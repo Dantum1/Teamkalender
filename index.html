@@ -116,10 +116,6 @@
   <div class="toolbar" id="homeToolbar">
  
        
-	<label style="margin:0;">
-  	   <span class="muted">Room</span><br/>
-  	   <input id="roomCode" placeholder="TEAM1" style="width:140px; text-transform:uppercase;">
-	</label>
 
         <label style="margin:0;">
           <span class="muted">Join-Code</span><br/>
@@ -249,30 +245,6 @@
 </div>
 
 
-  <!-- ✅ Auth-Modal hier einfügen -->
-  <div id="authModal" class="modal" style="display:none;">
-    <div class="modalCard">
-      <h3>Login</h3>
-      <p class="muted">Melde dich an, damit dein Name gespeichert bleibt.</p>
-
-      <label>E-Mail</label>
-      <input id="authEmail" type="email" placeholder="you@company.com">
-
-      <label>Passwort</label>
-      <input id="authPw" type="password" placeholder="••••••••">
-
-      <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
-        <button id="authSignup">Registrieren</button>
-        <button id="authLogin">Login</button>
-      </div>
-
-      <hr style="border:none; border-top:1px solid #1b2735; margin:14px 0;">
-      <button id="authLogout" style="width:100%; display:none;">Logout</button>
-    </div>
-  </div>
-
-
-
 <script type="module">
 
 // ===== Name Modal Helper =====
@@ -297,75 +269,17 @@ async function askName(){
 
 
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const SUPABASE_URL = "https://ipsxbbbdnsufpfbqsqqv.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlwc3hiYmJkbnN1ZnBmYnFzcXF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NjUzNTYsImV4cCI6MjA4MTE0MTM1Nn0.JCDyw6e9stz-mQpUp-mqjzet9-NeyofKSYYiD-ZJHJo";
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const supabase = createClient(
-   SUPABASE_URL,
-   SUPABASE_ANON_KEY,
-   {
-     auth: {
-	persistSession: true,
-	autoRefreshToken: true,
-	detectSessionInUrl: true
-      }
-    }
-);
+  // ✅ HIER ANPASSEN:
+  const SUPABASE_URL = "https://ipsxbbbdnsufpfbqsqqv.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlwc3hiYmJkbnN1ZnBmYnFzcXF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NjUzNTYsImV4cCI6MjA4MTE0MTM1Nn0.JCDyw6e9stz-mQpUp-mqjzet9-NeyofKSYYiD-ZJHJo";
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 
 window.supabase = supabase;
-
-
- function notify(msg, kind="") {
-  const el = document.getElementById("status");
-  if (el) {
-    el.textContent = msg;
-    el.className = "muted " + kind;
-    setTimeout(()=>{ el.textContent=""; el.className="muted"; }, 4500);
-  } else {
-    alert(msg);
-  }
-  console.log("[notify]", kind, msg);
-}
-
-
- let room = "";
-  let me = "";
-  let myUserId = "";
-  let realtimeChannel = null;
-  let joining = false;
-
-
-const authEmail = document.getElementById("authEmail");
-const authPw = document.getElementById("authPw");
-const authLogin = document.getElementById("authLogin");
-const authSignup = document.getElementById("authSignup");
-const authLogout = document.getElementById("authLogout");
-
-authLogin.onclick = async () => {
-  const { error } = await supabase.auth.signInWithPassword({
-    email: authEmail.value.trim(),
-    password: authPw.value
-  });
-  if (error) return notify(`Login: ${error.message}`, "warn");
-};
-
-authSignup.onclick = async () => {
-  const { error } = await supabase.auth.signUp({
-    email: authEmail.value.trim(),
-    password: authPw.value
-  });
-  if (error) return notify(`Signup: ${error.message}`, "warn");
-  notify("Registriert ✅ Bitte E-Mail ggf. bestätigen.", "ok");
-};
-
-authLogout.onclick = async () => {
-  await supabase.auth.signOut();
-};
-
-
-
 
   // --- UI / State ---
   const pad = n => String(n).padStart(2,"0");
@@ -376,7 +290,10 @@ authLogout.onclick = async () => {
   const LS_KEY = "teamAvail:v1";
 
   function saveSessionPrefs(){
-  localStorage.setItem(LS_KEY, JSON.stringify({room }));
+  localStorage.setItem(LS_KEY, JSON.stringify({
+    room,
+    name: document.getElementById("myName").value.trim()
+  }));
 }
 
   function loadSessionPrefs(){
@@ -387,6 +304,14 @@ authLogout.onclick = async () => {
   function forgetSessionPrefs(){
     localStorage.removeItem(LS_KEY);
 }
+
+
+  function notify(msg, kind="") {
+    const el = document.getElementById("status");
+    el.textContent = msg;
+    el.className = "muted " + kind;
+    setTimeout(()=>{ el.textContent=""; el.className="muted"; }, 4500);
+  }
 
   function escapeHtml(s){
     return String(s)
@@ -399,8 +324,14 @@ authLogout.onclick = async () => {
 
   const slotKey = (dateStr, hh, mm) => `${dateStr}|${pad(hh)}:${pad(mm)}`;
 
+  // Global room/session
+  let room = "";
+  let me = "";
+  let myUserId = "";
+  let realtimeChannel = null;
+  let joining = false;
 
-   // Shared state loaded from DB
+  // Shared state loaded from DB
   let members = []; // [{user_id, display_name}]
   let availabilityByUser = new Map(); // user_id -> Set(slot_key)
 
@@ -771,79 +702,23 @@ function renderTabLabels(){
     renderTable();
   }
 
-async function ensureSignedIn() {
-  console.log("[ensureSignedIn] start");
-
-  const { data: { session }, error } = await supabase.auth.getSession();
-
-  console.log("[ensureSignedIn] getSession:", { hasSession: !!session, error });
-
-  if (error) throw error;
-
-  if (session?.user) {
-    myUserId = session.user.id;
-    console.log("[ensureSignedIn] OK userId:", myUserId);
-    return session.user;
+  // --- DB load ---
+  async function ensureSignedInAnon(){
+    const { data: sess } = await supabase.auth.getSession();
+    if (sess?.session?.user?.id){
+      myUserId = sess.session.user.id;
+      return;
+    }
+    const { error } = await supabase.auth.signInAnonymously();
+    if (error) {
+      console.error(error);
+      notify("Auth fehlgeschlagen (Anonymous evtl. deaktiviert).", "warn");
+      throw error;
+    }
+    const { data: sess2 } = await supabase.auth.getSession();
+    myUserId = sess2?.session?.user?.id || "";
+    if (!myUserId) throw new Error("Keine Session nach anon login.");
   }
-
-  console.warn("[ensureSignedIn] NOT signed in -> showAuth()");
-  showAuth();
-  throw new Error("Not signed in");
-}
-
-
-function showAuth(){
-  const m = document.getElementById("authModal");
-  if (!m) {
-    console.error("[showAuth] authModal not found in DOM");
-    return;
-  }
-  m.style.display = "flex";
-}
-
-function hideAuth(){
-  const m = document.getElementById("authModal");
-  if (!m) return;
-  m.style.display = "none";
-}
-
-
-async function loadMyProfile(user){
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("display_name")
-    .eq("id", user.id)
-    .single();
-
-  if (error) throw error;
-
-  let displayName = (data?.display_name || "").trim();
-
-  // wenn noch kein Name gesetzt: einmalig abfragen und speichern
-  if (!displayName) {
-    const asked = await askName();
-    if (!asked) throw new Error("No display name provided");
-    displayName = asked.trim();
-
-    const { error: upErr } = await supabase
-      .from("profiles")
-      .update({ display_name: displayName })
-      .eq("id", user.id);
-
-    if (upErr) throw upErr;
-  }
-
-  me = displayName;
-  // optional: Feld anzeigen (read-only) statt Pflichtfeld
-  const myNameEl = document.getElementById("myName");
-  if (myNameEl) {
-    myNameEl.value = displayName;
-    myNameEl.disabled = true;
-  }
-
-  return displayName;
-}
-
 
   async function loadRoomState(){
     // Members
@@ -890,60 +765,23 @@ async function loadMyProfile(user){
       .subscribe();
   }
 
-
-// Optional: fürs Debuggen im DevTools global verfügbar machen
-// (weil type="module" sonst nicht im Console-Scope ist)
-function exposeDebugFns(obj){
-  try { Object.assign(window, obj); } catch {}
+  // --- Actions ---
+  async function createRoom(){
+if (joining) return;
+joining = true;
+try {
+  // ... dein bisheriger code ...
+} finally {
+  joining = false;
 }
 
-// ✅ Einmalige Helper-Funktion: Auth + Profil sicherstellen
-async function requireAuthAndProfile() {
-  const { data: { session }, error } = await supabase.auth.getSession();
-  if (error) {
-    console.error("[auth] getSession error", error);
-    notify(`Auth Fehler: ${error.message}`, "warn");
-    return null;
-  }
+    await ensureSignedInAnon();
 
-  if (!session?.user) {
-    showAuth();
-    notify("Bitte zuerst einloggen.", "warn");
-    return null;
-  }
+    room = document.getElementById("roomCode").value.trim().toUpperCase();
+    me = document.getElementById("myName").value.trim();
+    const joinCode = document.getElementById("joinCode").value.trim();
 
-  myUserId = session.user.id;
-
-  try {
-    await loadMyProfile(session.user); // setzt "me"
-  } catch (e) {
-    console.error("[auth] loadMyProfile failed", e);
-    notify("Profil konnte nicht geladen werden (siehe Konsole).", "warn");
-    return null;
-  }
-
-  return session.user;
-}
-
-
-async function createRoom() {
-  if (joining) return;
-  joining = true;
-
-  try {
-    const user = await ensureSignedIn();
-    await loadMyProfile(user);
-
-    const roomInput = document.getElementById("roomCode");
-    const joinInput = document.getElementById("joinCode");
-
-    room = roomInput.value.trim().toUpperCase();
-    const joinCode = joinInput.value.trim();
-
-    if (!room || !joinCode) {
-      notify("Bitte Room + Join-Code eingeben.", "warn");
-      return;
-    }
+    if (!room || !me || !joinCode) return notify("Bitte Room + Join-Code + Name eingeben.", "warn");
 
     const { error } = await supabase.rpc("create_room", {
       p_room: room,
@@ -951,39 +789,36 @@ async function createRoom() {
       p_display_name: me
     });
 
-    if (error) throw error;
+    if (error){ console.error(error); return notify("Erstellen fehlgeschlagen (RPC/create_room).", "warn"); }
 
     await loadRoomState();
     await startRealtime();
-    renderAll();
+    ui.mode = "me";
+    saveSessionPrefs();
 
+    renderAll();
     notify("Room erstellt ✅", "ok");
-  } catch (e) {
-    console.error(e);
-    notify(e.message, "warn");
-  } finally {
-    joining = false;
   }
+
+  async function joinRoom(){
+if (joining) return;
+joining = true;
+try {
+  // ... dein bisheriger code ...
+} finally {
+  joining = false;
 }
 
-async function joinRoom() {
-  if (joining) return;
-  joining = true;
+    await ensureSignedInAnon();
 
-  try {
-    const user = await ensureSignedIn();
-    await loadMyProfile(user);
+    room = document.getElementById("roomCode").value.trim().toUpperCase();
+    me = document.getElementById("myName").value.trim();
+    const joinCode = document.getElementById("joinCode").value.trim();
 
-    const roomInput = document.getElementById("roomCode");
-    const joinInput = document.getElementById("joinCode");
+if (!room || !me || !joinCode) {
+  return notify("Bitte Room + Join-Code + Name eingeben.", "warn");
+}
 
-    room = roomInput.value.trim().toUpperCase();
-    const joinCode = joinInput.value.trim();
-
-    if (!room || !joinCode) {
-      notify("Bitte Room + Join-Code eingeben.", "warn");
-      return;
-    }
 
     const { error } = await supabase.rpc("join_room", {
       p_room: room,
@@ -991,37 +826,22 @@ async function joinRoom() {
       p_display_name: me
     });
 
-    if (error) throw error;
+   if (error){
+  console.error(error);
+  return notify(`Beitreten fehlgeschlagen: ${error.message}`, "warn");
+}
+
 
     await loadRoomState();
     await startRealtime();
+    ui.mode = "me";
+    saveSessionPrefs();
+
     renderAll();
-
     notify("Beigetreten ✅", "ok");
-  } catch (e) {
-    console.error(e);
-    notify(e.message, "warn");
-  } finally {
-    joining = false;
+    setTab("calendar");
+
   }
-}
-
-// Für Debug in Console:
-Object.assign(window, { createRoom, joinRoom });
-
-
-window.createRoom = createRoom;
-window.joinRoom = joinRoom;
-
-
-
-// optional fürs Debuggen:
-exposeDebugFns({ createRoom, joinRoom });
-
-
-  // --- Actions ---
-
-
 
   async function toggleSlot(key){
     if (!room) return notify("Bitte zuerst Erstellen oder Beitreten.", "warn");
@@ -1050,26 +870,9 @@ exposeDebugFns({ createRoom, joinRoom });
   }
 
  // --- Wiring ---
-const createBtn = document.getElementById("createBtn");
-const joinBtn = document.getElementById("joinBtn");
+document.getElementById("createBtn").onclick = () => createRoom().catch(e => console.error(e));
+document.getElementById("joinBtn").onclick = () => joinRoom().catch(e => console.error(e));
 
-if (!createBtn || !joinBtn) {
-  console.error("Buttons nicht gefunden", { createBtn, joinBtn });
-} else {
-  createBtn.addEventListener("click", async (ev) => {
-    ev.preventDefault();
-    console.log("createBtn clicked");
-    try { await createRoom(); }
-    catch (e) { console.error("createRoom failed:", e); }
-  });
-
-  joinBtn.addEventListener("click", async (ev) => {
-    ev.preventDefault();
-    console.log("joinBtn clicked");
-    try { await joinRoom(); }
-    catch (e) { console.error("joinRoom failed:", e); }
-  });
-}
 // 🔗 Invite-Link Button
 const inviteBtn = document.getElementById("inviteBtn");
 if (inviteBtn){
@@ -1114,14 +917,14 @@ window.joinViaInviteIfPresent = async () => {
   const token = params.get("invite");
   if (!token) return;
 
-  const user = await ensureSignedIn();
-  await loadMyProfile(user);
+  await ensureSignedInAnon();
 
-
+  const name = await askName();
+  if (!name) return;
 
   const { data: roomCode, error } = await supabase.rpc("redeem_invite", {
     p_token: token,
-    p_display_name: me
+    p_display_name: name.trim()
   });
 
   if (error){
@@ -1131,7 +934,7 @@ window.joinViaInviteIfPresent = async () => {
 
   room = String(roomCode).toUpperCase();
   document.getElementById("roomCode").value = room;
-  if (roomInput) roomInput.value = room;
+  document.getElementById("myName").value = name.trim();
 
   await loadRoomState();
   await startRealtime();
@@ -1146,19 +949,17 @@ window.joinViaInviteIfPresent = async () => {
 // --- Auto Reconnect ---
 async function autoReconnect(){
   const saved = loadSessionPrefs();
-  if (!saved.room) return;
+  if (!saved.room || !saved.name) return;
 
-  const  user = await ensureSignedIn();
-  await loadMyProfile(user);
+  await ensureSignedInAnon();
 
   room = saved.room;
+  me = saved.name;
 
-const roomEl = document.getElementById("roomCode");
-if (roomEl) roomEl.value = room;
-
-const nameEl = document.getElementById("myName");
-if (nameEl) nameEl.value = me;
-
+  const roomEl = document.getElementById("roomCode").value = room;
+  const nameEl = document.getElementById("myName").value = me;
+  if (roomEl) roomEl.value = room;
+  if (nameEl) nameEl.value = saved.name;
   await loadRoomState();
   await startRealtime();
 
