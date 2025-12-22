@@ -692,7 +692,11 @@ function renderTabLabels(){
     const { data: sess2 } = await supabase.auth.getSession();
     myUserId = sess2?.session?.user?.id || "";
     if (!myUserId) throw new Error("Keine Session nach anon login.");
-  }
+  
+}
+  
+  return true;
+}
 
   async function loadRoomState(){
     // Members
