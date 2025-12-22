@@ -300,19 +300,15 @@ async function askName(){
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = "https://ipsxbbbdnsufpfbqsqqv.supabase.co";
-const SUPABASE_ANON_KEY = "DEIN_ANON_KEY";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlwc3hiYmJkbnN1ZnBmYnFzcXF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NjUzNTYsImV4cCI6MjA4MTE0MTM1Nn0.JCDyw6e9stz-mQpUp-mqjzet9-NeyofKSYYiD-ZJHJo";
 
-const supabase = createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY,
-  {
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true
     }
-  }
-);
+  });
 
 window.supabase = supabase;
 
@@ -995,22 +991,17 @@ async function requireAuthAndProfile() {
 }
 
 
+
 async function createRoom() {
-  console.log("[createRoom] start");
-  if (joining) return console.log("[createRoom] blocked: joining=true");
+  if (joining) return;
   joining = true;
 
   try {
-    // Auth + Profil
-    console.log("[createRoom] ensureSignedIn...");
+    console.log("[createRoom] start");
+
     const user = await ensureSignedIn();
-    console.log("[createRoom] user", user.id);
-
-    console.log("[createRoom] loadMyProfile...");
     await loadMyProfile(user);
-    console.log("[createRoom] me", me);
 
-    // Inputs
     const roomInput = document.getElementById("roomCode");
     const joinInput = document.getElementById("joinCode");
 
@@ -1022,8 +1013,8 @@ async function createRoom() {
       return;
     }
 
-    // RPC
-    console.log("[createRoom] rpc create_room...", { room, me });
+    console.log("[createRoom] rpc create_room", { room, me });
+
     const { data, error } = await supabase.rpc("create_room", {
       p_room: room,
       p_join_code: joinCode,
@@ -1031,45 +1022,38 @@ async function createRoom() {
     });
 
     if (error) {
-      console.error("[createRoom] rpc error", error);
+      console.error("[createRoom] create_room error:", error);
       notify(`Erstellen fehlgeschlagen: ${error.message}`, "warn");
       return;
     }
-    console.log("[createRoom] rpc ok", data);
 
-    // UI State
+    console.log("[createRoom] create_room ok:", data);
+
     await loadRoomState();
     await startRealtime();
 
     ui.mode = "me";
     saveSessionPrefs();
     renderAll();
-
     notify("Room erstellt ✅", "ok");
   } catch (e) {
-    console.error("[createRoom] exception", e);
-    notify(`Erstellen: ${e?.message || e}`, "warn");
+    console.error("[createRoom] exception:", e);
+    notify(`Erstellen: ${e.message || e}`, "warn");
   } finally {
     joining = false;
   }
 }
 
 async function joinRoom() {
-  console.log("[joinRoom] start");
-  if (joining) return console.log("[joinRoom] blocked: joining=true");
+  if (joining) return;
   joining = true;
 
   try {
-    // Auth + Profil
-    console.log("[joinRoom] ensureSignedIn...");
+    console.log("[joinRoom] start");
+
     const user = await ensureSignedIn();
-    console.log("[joinRoom] user", user.id);
-
-    console.log("[joinRoom] loadMyProfile...");
     await loadMyProfile(user);
-    console.log("[joinRoom] me", me);
 
-    // Inputs
     const roomInput = document.getElementById("roomCode");
     const joinInput = document.getElementById("joinCode");
 
@@ -1081,8 +1065,8 @@ async function joinRoom() {
       return;
     }
 
-    // RPC
-    console.log("[joinRoom] rpc join_room...", { room, me });
+    console.log("[joinRoom] rpc join_room", { room, me });
+
     const { data, error } = await supabase.rpc("join_room", {
       p_room: room,
       p_join_code: joinCode,
@@ -1090,24 +1074,23 @@ async function joinRoom() {
     });
 
     if (error) {
-      console.error("[joinRoom] rpc error", error);
+      console.error("[joinRoom] join_room error:", error);
       notify(`Beitreten fehlgeschlagen: ${error.message}`, "warn");
       return;
     }
-    console.log("[joinRoom] rpc ok", data);
 
-    // UI State
+    console.log("[joinRoom] join_room ok:", data);
+
     await loadRoomState();
     await startRealtime();
 
     ui.mode = "me";
     saveSessionPrefs();
     renderAll();
-
     notify("Beigetreten ✅", "ok");
   } catch (e) {
-    console.error("[joinRoom] exception", e);
-    notify(`Beitreten: ${e?.message || e}`, "warn");
+    console.error("[joinRoom] exception:", e);
+    notify(`Beitreten: ${e.message || e}`, "warn");
   } finally {
     joining = false;
   }
