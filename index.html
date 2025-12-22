@@ -761,6 +761,8 @@ function renderTabLabels(){
   }
 
   async function toggleSlot(key){
+console.log("ROOM VALUE:", JSON.stringify(room));
+
     if (!room) return notify("Bitte zuerst Erstellen oder Beitreten.", "warn");
 
   const { data: { user }, error: userErr } = await supabase.auth.getUser();
@@ -773,14 +775,20 @@ function renderTabLabels(){
     if (!isOn){
       const { error } = await supabase
         .from("availability")
-        .upsert({ room_code: room, user_id: myUserId, slot_key: key });
+const roomCode = (room || "").trim(); // optional: .toUpperCase()
+if (!roomCode) return notify("Room-Code fehlt.", "warn");
+
+const { error } = await supabase
+  .from("availability")
+  .upsert({ room_code: roomCode, user_id: myUserId, slot_key: key });
 
       if (error){ console.error(error); return notify("Speichern fehlgeschlagen (RLS?).", "warn"); }
     } else {
       const { error } = await supabase
         .from("availability")
         .delete()
-        .match({ room_code: room, user_id: myUserId, slot_key: key });
+        .match({ room_code: roomCode, user_id: myUserId, slot_key: key });
+
 
       if (error){ console.error(error); return notify("Löschen fehlgeschlagen (RLS?).", "warn"); }
     }
