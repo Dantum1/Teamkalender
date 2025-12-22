@@ -305,6 +305,12 @@ async function askName(){
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlwc3hiYmJkbnN1ZnBmYnFzcXF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NjUzNTYsImV4cCI6MjA4MTE0MTM1Nn0.JCDyw6e9stz-mQpUp-mqjzet9-NeyofKSYYiD-ZJHJo";
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+	auth: {
+   persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+});
 
 
 window.supabase = supabase;
@@ -786,33 +792,69 @@ function renderTabLabels(){
 async function ensureSignedIn() {
   console.log("[ensureSignedIn] start");
 
-  // Timeout-Schutz, falls getSession() aus irgendeinem Grund hängt
-  const timeoutMs = 4000;
-  const timeout = new Promise((_, rej) =>
-    setTimeout(() => rej(new Error("ensureSignedIn timeout (getSession took too long)")), timeoutMs)
-  );
+  // 1) getSession mit Timeout absichern
+  const withTimeout = (p, ms, label) =>
+    Promise.race([
+      p,
+      new Promise((_, rej) =>
+        setTimeout(() => rej(new Error(`${label} timeout after ${ms}ms`)), ms)
+      )
+    ]);
 
-  const result = await Promise.race([
-    supabase.auth.getSession(),
-    timeout
-  ]);
+  let session = null;
 
-  const { data, error } = result;
+  try {
+    const { data, error } = await withTimeout(
+      supabase.auth.getSession(),
+      2500,
+      "getSession"
+    );
 
-  console.log("[ensureSignedIn] getSession:", { session: data?.session, error });
+    if (error) {
+      console.error("[ensureSignedIn] getSession error:", error);
+      throw error;
+    }
 
-  if (error) {
-    console.error("[ensureSignedIn] getSession error:", error);
-    throw error;
+    session = data?.session || null;
+    console.log("[ensureSignedIn] getSession session?", !!session);
+  } catch (e) {
+    console.warn("[ensureSignedIn] getSession failed:", e.message);
   }
 
-  const session = data?.session;
+  // 2) Fallback: getUser (holt User auch wenn Session-Probleme)
+  if (!session) {
+    try {
+      const { data, error } = await withTimeout(
+        supabase.auth.getUser(),
+        2500,
+        "getUser"
+      );
 
-  if (!session?.user?.id) {
-    console.warn("[ensureSignedIn] NO SESSION → showAuth()");
-    showAuth();
-    throw new Error("Not signed in");
+      if (error) {
+        console.warn("[ensureSignedIn] getUser error:", error);
+      } else if (data?.user) {
+        console.log("[ensureSignedIn] getUser ok:", data.user.id);
+        myUserId = data.user.id;
+        return data.user;
+      }
+    } catch (e) {
+      console.warn("[ensureSignedIn] getUser failed:", e.message);
+    }
   }
+
+  // 3) Wenn Session vorhanden: User zurückgeben
+  if (session?.user) {
+    myUserId = session.user.id;
+    console.log("[ensureSignedIn] session OK user:", myUserId);
+    return session.user;
+  }
+
+  // 4) Nicht eingeloggt → Auth UI zeigen
+  console.warn("[ensureSignedIn] NOT signed in -> showAuth()");
+  showAuth();
+  throw new Error("Not signed in");
+}
+
 
   myUserId = session.user.id;
   console.log("[ensureSignedIn] OK userId:", myUserId);
