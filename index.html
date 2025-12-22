@@ -256,15 +256,17 @@ async function askName(){
   return new Promise(res => {
     const m = document.getElementById("nameModal");
     const input = document.getElementById("modalName");
+    const okBtn = document.getElementById("modalOk");
+    const cancelBtn = document.getElementById("modalCancel");
     m.style.display = "flex";
     input.value = "";
     input.focus();
 
-    modalOk.onclick = () => {
+    okBtn.onclick = () => {
       m.style.display = "none";
       res(input.value.trim());
     };
-    modalCancel.onclick = () => {
+    cancelBtn.onclick = () => {
       m.style.display = "none";
       res(null);
     };
@@ -361,6 +363,9 @@ window.supabase = supabase;
   const rangeLabel = document.getElementById("rangeLabel");
   const suggestionsEl = document.getElementById("suggestions");
   const playersEl = document.getElementById("players");
+
+  // Tabs (wird in DOMContentLoaded initialisiert)
+  let setTab = (_which) => {};
 
 // --- Share / Invite ---
 function buildInviteLink(){
@@ -673,79 +678,83 @@ function renderTabLabels(){
 
   // --- Actions ---
   async function createRoom(){
-if (joining) return;
-joining = true;
-try {
-  // ... dein bisheriger code ...
-} finally {
-  joining = false;
-}
+    if (joining) return;
+    joining = true;
+    try {
+      await ensureSignedInAnon();
 
-    await ensureSignedInAnon();
+      room = document.getElementById("roomCode").value.trim().toUpperCase();
+      me = document.getElementById("myName").value.trim();
+      const joinCode = document.getElementById("joinCode").value.trim();
 
-    room = document.getElementById("roomCode").value.trim().toUpperCase();
-    me = document.getElementById("myName").value.trim();
-    const joinCode = document.getElementById("joinCode").value.trim();
+      if (!room || !me || !joinCode) {
+        notify("Bitte Room + Join-Code + Name eingeben.", "warn");
+        return;
+      }
 
-    if (!room || !me || !joinCode) return notify("Bitte Room + Join-Code + Name eingeben.", "warn");
+      const { error } = await supabase.rpc("create_room", {
+        p_room: room,
+        p_join_code: joinCode,
+        p_display_name: me
+      });
 
-    const { error } = await supabase.rpc("create_room", {
-      p_room: room,
-      p_join_code: joinCode,
-      p_display_name: me
-    });
+      if (error){
+        console.error(error);
+        notify("Erstellen fehlgeschlagen (RPC/create_room).", "warn");
+        return;
+      }
 
-    if (error){ console.error(error); return notify("Erstellen fehlgeschlagen (RPC/create_room).", "warn"); }
+      await loadRoomState();
+      await startRealtime();
+      ui.mode = "me";
+      saveSessionPrefs();
 
-    await loadRoomState();
-    await startRealtime();
-    ui.mode = "me";
-    saveSessionPrefs();
-
-    renderAll();
-    notify("Room erstellt ✅", "ok");
+      renderAll();
+      notify("Room erstellt ✅", "ok");
+      setTab("calendar");
+    } finally {
+      joining = false;
+    }
   }
 
   async function joinRoom(){
-if (joining) return;
-joining = true;
-try {
-  // ... dein bisheriger code ...
-} finally {
-  joining = false;
-}
+    if (joining) return;
+    joining = true;
+    try {
+      await ensureSignedInAnon();
 
-    await ensureSignedInAnon();
+      room = document.getElementById("roomCode").value.trim().toUpperCase();
+      me = document.getElementById("myName").value.trim();
+      const joinCode = document.getElementById("joinCode").value.trim();
 
-    room = document.getElementById("roomCode").value.trim().toUpperCase();
-    me = document.getElementById("myName").value.trim();
-    const joinCode = document.getElementById("joinCode").value.trim();
+      if (!room || !me || !joinCode) {
+        notify("Bitte Room + Join-Code + Name eingeben.", "warn");
+        return;
+      }
 
-if (!room || !me || !joinCode) {
-  return notify("Bitte Room + Join-Code + Name eingeben.", "warn");
-}
+      const { error } = await supabase.rpc("join_room", {
+        p_room: room,
+        p_join_code: joinCode,
+        p_display_name: me
+      });
 
+      if (error){
+        console.error(error);
+        notify(`Beitreten fehlgeschlagen: ${error.message}`, "warn");
+        return;
+      }
 
-    const { error } = await supabase.rpc("join_room", {
-      p_room: room,
-      p_join_code: joinCode,
-      p_display_name: me
-    });
+      await loadRoomState();
+      await startRealtime();
+      ui.mode = "me";
+      saveSessionPrefs();
 
-   if (error){
-  console.error(error);
-  return notify(`Beitreten fehlgeschlagen: ${error.message}`, "warn");
-}
-
-
-    await loadRoomState();
-    await startRealtime();
-    ui.mode = "me";
-    saveSessionPrefs();
-
-    renderAll();
-    notify("Beigetreten ✅", "ok");
-    setTab("calendar");
+      renderAll();
+      notify("Beigetreten ✅", "ok");
+      setTab("calendar");
+    } finally {
+      joining = false;
+    }
 
   }
 
@@ -780,9 +789,13 @@ document.getElementById("createBtn").onclick = () => createRoom().catch(e => con
 document.getElementById("joinBtn").onclick = () => joinRoom().catch(e => console.error(e));
 
 // 🔗 Invite-Link Button
-const inviteBtn = document.getElementById("inviteBtn");
-if (inviteBtn){
-  inviteBtn.onclick = async () => {
+const inviteBtns = [
+  document.getElementById("inviteBtn"),
+  document.getElementById("inviteBtnTop")
+].filter(Boolean);
+
+for (const btn of inviteBtns){
+  btn.onclick = async () => {
     if (!room) return notify("Erst Room erstellen oder beitreten.", "warn");
 
     const { data: token, error } = await supabase.rpc("create_invite", {
@@ -800,8 +813,8 @@ if (inviteBtn){
     url.searchParams.delete("room");
     url.searchParams.delete("join");
 
-    await navigator.clipboard.writeText(url.toString());
-    notify("Invite-Link kopiert ✅", "ok");
+    const ok = await copyToClipboard(url.toString());
+    notify(ok ? "Invite-Link kopiert ✅" : "Kopieren fehlgeschlagen – bitte manuell kopieren.", ok ? "ok" : "warn");
   };
 }
 
@@ -842,11 +855,15 @@ window.joinViaInviteIfPresent = async () => {
   document.getElementById("roomCode").value = room;
   document.getElementById("myName").value = name.trim();
 
+  // Für Auto-Reconnect merken
+  saveSessionPrefs();
+
   await loadRoomState();
   await startRealtime();
 
   ui.mode = "me";
   renderAll();
+  setTab("calendar");
   history.replaceState({}, "", location.pathname);
   notify("Beigetreten ✅", "ok");
 }; // ✅ HIER wird die Invite-Funktion geschlossen
@@ -887,13 +904,13 @@ window.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  function setTab(which){
+  setTab = function(which){
     const isHome = which === "home";
     panelHome.style.display = isHome ? "" : "none";
     panelCalendar.style.display = isHome ? "none" : "";
     tabHome.classList.toggle("active", isHome);
     tabCalendar.classList.toggle("active", !isHome);
-  }
+  };
 
   tabHome.onclick = () => setTab("home");
   tabCalendar.onclick = () => setTab("calendar");
