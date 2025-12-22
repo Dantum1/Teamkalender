@@ -113,77 +113,26 @@
   <h2 style="margin:0 0 10px; font-size:16px;">Teamkalender</h2>
 
   <!-- ✅ HIER deine bestehende Toolbar REINKOPIEREN -->
-  <div class="toolbar" id="homeToolbar">
- 
-        <label style="margin:0;">
-          <span class="muted">Room</span><br/>
-          <input id="roomCode" placeholder="TEAM-DEC" style="width:140px;">
-        </label>
+<div class="toolbar" id="homeToolbar">
+  <label style="margin:0;">
+    <span class="muted">Room</span><br/>
+    <input id="roomCode" placeholder="TEAM-DEC" style="width:140px;">
+  </label>
 
-        <label style="margin:0;">
-          <span class="muted">Join-Code</span><br/>
-          <input id="joinCode" placeholder="secret123" style="width:140px;">
-        </label>
+  <label style="margin:0;">
+    <span class="muted">Join-Code</span><br/>
+    <input id="joinCode" placeholder="secret123" style="width:140px;">
+  </label>
 
-        <label style="margin:0;">
-          <span class="muted">Name</span><br/>
-          <input id="myName" placeholder="Leon" style="width:140px;">
-        </label>
+  <label style="margin:0;">
+    <span class="muted">Name</span><br/>
+    <input id="myName" placeholder="Leon" style="width:140px;">
+  </label>
 
-        <button id="createBtn">Erstellen</button>
-        <button id="joinBtn">Beitreten</button>
-	<button id="inviteBtn" type="button">Invite-Link kopieren</button>
-
-	
-
-        <span style="width:1px; height:34px; background:#1b2735;"></span>
-
-        <span class="pill">Zeitraum: <b id="rangeLabel"></b></span>
-
-        <label style="margin:0;">
-          <span class="muted">Startdatum</span><br/>
-          <input id="startDate" type="date">
-        </label>
-
-        <label style="margin:0;">
-          <span class="muted">Tage</span><br/>
-          <select id="daysCount">
-            <option>5</option><option selected>7</option><option>10</option><option>14</option>
-          </select>
-        </label>
-
-        <label style="margin:0;">
-          <span class="muted">Von</span><br/>
-          <select id="hourFrom"></select>
-        </label>
-
-        <label style="margin:0;">
-          <span class="muted">Bis</span><br/>
-          <select id="hourTo"></select>
-        </label>
-
-        <label style="margin:0;">
-          <span class="muted">Slot</span><br/>
-          <select id="slotMinutes">
-            <option value="30">30 min</option>
-            <option value="60" selected>60 min</option>
-          </select>
-        </label>
-
-        <span style="flex:1"></span>
-
-        <label style="margin:0;">
-          <span class="muted">Ansicht</span><br/>
-          <select id="mode">
-            <option value="overlay" selected>Overlap (alle)</option>
-            <option value="me">Ich (klicken)</option>
-          </select>
-        </label>
-      
-
-  <div class="muted" style="margin-top:12px;">Teamübersicht</div>
-  <div class="list" id="teamOverview"></div>
-</section>
+  <button id="createBtn">Erstellen</button>
+  <button id="joinBtn">Beitreten</button>
+  <button id="inviteBtn" type="button">Invite-Link kopieren</button>
+</div>
 
 <div id="panelCalendar" style="display:none;">
 
@@ -214,6 +163,47 @@
       <div class="muted" style="margin-top:10px;">
         In <b>Ich (klicken)</b> markierst du deine Slots. In <b>Overlap</b> siehst du wie viele können.
       </div>
+<div class="toolbar" id="calendarToolbar" style="margin-top:10px;">
+  <span class="pill">Zeitraum: <b id="rangeLabel"></b></span>
+
+  <label style="margin:0;">
+    <span class="muted">Startdatum</span><br/>
+    <input id="startDate" type="date">
+  </label>
+
+  <label style="margin:0;">
+    <span class="muted">Tage</span><br/>
+    <select id="daysCount">
+      <option>5</option><option selected>7</option><option>10</option><option>14</option>
+    </select>
+  </label>
+
+  <label style="margin:0;">
+    <span class="muted">Von</span><br/>
+    <select id="hourFrom"></select>
+  </label>
+
+  <label style="margin:0;">
+    <span class="muted">Bis</span><br/>
+    <select id="hourTo"></select>
+  </label>
+
+  <label style="margin:0;">
+    <span class="muted">Slot</span><br/>
+    <select id="slotMinutes">
+      <option value="30">30 min</option>
+      <option value="60" selected>60 min</option>
+    </select>
+  </label>
+
+  <label style="margin:0;">
+    <span class="muted">Ansicht</span><br/>
+    <select id="modeCalendar">
+      <option value="overlay" selected>Overlap (alle)</option>
+      <option value="me">Ich (klicken)</option>
+    </select>
+  </label>
+</div>
 
       <div class="gridWrap" style="margin-top:12px;">
         <table id="tbl"></table>
@@ -264,6 +254,8 @@ async function askName(){
     const input = document.getElementById("modalName");
     const okBtn = document.getElementById("modalOk");
     const cancelBtn = document.getElementById("modalCancel");
+    const modeCalendarEl = document.getElementById("modeCalendar");
+
     m.style.display = "flex";
     input.value = "";
     input.focus();
@@ -909,13 +901,7 @@ for (const btn of inviteBtns){
   daysCountEl.onchange = () => { ui.daysCount = Number(daysCountEl.value); renderAll(); };
   hourFromEl.onchange = () => { ui.hourFrom = Number(hourFromEl.value); renderAll(); };
   hourToEl.onchange = () => { ui.hourTo = Number(hourToEl.value); renderAll(); };
-  slotMinutesEl.onchange = () => { ui.slotMinutes = Number(slotMinutesEl.value); renderAll(); };
-  if (modeHomeEl){
-  modeHomeEl.onchange = () => {
-    ui.mode = modeHomeEl.value;
-    renderAll();
-  };
-}
+  slotMinutesEl.onchange = () => { ui.slotMinutes = Number(slotMinutesEl.value); renderAll(); }
 
 if (modeCalendarEl){
   modeCalendarEl.onchange = () => {
