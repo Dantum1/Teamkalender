@@ -681,7 +681,7 @@ function renderTabLabels(){
       myUserId = sess.session.user.id;
       return true;
     }
-      retunr false;
+      return false;
 }
     const { error } = await supabase.auth.signInAnonymously();
     if (error) {
