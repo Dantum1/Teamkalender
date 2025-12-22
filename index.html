@@ -448,14 +448,18 @@ async function copyToClipboard(text){
     return times;
   }
 
-  function overlapCount(dateStr,h,m){
-    const key = slotKey(dateStr,h,m);
-    let c = 0;
-    for (const [uid, set] of availabilityByUser.entries()){
-      if (set.has(key)) c++;
-    }
-    return c;
+function overlapCount(dateStr, h, m){
+  const key = slotKey(dateStr, h, m);
+  let c = 0;
+
+  for (const mbr of members){
+    const set = availabilityByUser.get(mbr.user_id);
+    if (set && set.has(key)) c++;
   }
+
+  return c;
+}
+
 
   function myHas(key){
     const set = availabilityByUser.get(myUserId);
@@ -465,8 +469,8 @@ async function copyToClipboard(text){
 function overlapHas(key){
   if (!members.length) return false;
 
-  for (const m of members){
-    const set = availabilityByUser.get(m.user_id);
+  for (const mbr of members){
+    const set = availabilityByUser.get(mbr.user_id);
     if (!set || !set.has(key)) return false;
   }
   return true;
@@ -607,21 +611,29 @@ function renderTabLabels(){
           div.textContent = on ? "✓" : "";
           div.style.background = on ? "rgba(34, 187, 119, 0.14)" : "transparent";
           div.onclick = () => toggleSlot(key);
-    } else {
-  const c = overlapCount(dateStr,h,m);
-  const all = overlapHas(key); // ✅ ALLE Mitglieder haben den Slot
+} else {
+  const c = overlapCount(dateStr, h, m);
+  const all = overlapHas(key);
 
-  div.textContent = c ? String(c) : "";
-  div.classList.toggle("on", all); // ✅ sichtbar wie früher (Rahmen)
+  // Count anzeigen
+  div.textContent = c ? `${c}/${members.length}` : "";
 
-  const ratio = members.length ? c/members.length : 0;
-  div.style.background = ratio ? `rgba(120, 170, 255, ${0.08 + ratio*0.38})` : "transparent";
+  // deutlicher sichtbar als nur Alpha
+  div.classList.toggle("on", all); // grüner Rahmen via CSS
 
-  // optional: wenn "all", stärker hervorheben
-  if (all) div.style.background = "rgba(34, 187, 119, 0.18)";
+  // Hintergrund für "irgendwer kann"
+  if (c > 0) {
+    div.style.background = "rgba(120, 170, 255, 0.22)";
+  } else {
+    div.style.background = "transparent";
+  }
+
+  // Extra-Highlight wenn alle können
+  if (all) div.style.background = "rgba(34, 187, 119, 0.22)";
 
   div.onclick = () => notify("Wechsle auf 'Ich (klicken)' um Slots zu setzen.", "warn");
 }
+
 
         td.appendChild(div);
         tr.appendChild(td);
