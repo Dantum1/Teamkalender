@@ -630,6 +630,16 @@ console.warn("renderTable() start");
           div.textContent = on ? "✓" : "";
           div.style.background = on ? "rgba(34, 187, 119, 0.14)" : "transparent";
           div.onclick = () => toggleSlot(key);
+
+function renderTable(){
+  try {
+    // ... dein ganzer renderTable code bleibt gleich ...
+  } catch (e) {
+    console.error("renderTable crashed:", e);
+    throw e;
+  }
+}
+
 } else {
   const key = slotKey(dateStr, h, m);
   const names = overlapInitials(key);   // ["L","C","K"]
