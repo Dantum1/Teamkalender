@@ -252,6 +252,12 @@
 <script type="module">
 
 // ===== Name Modal Helper =====
+
+function normalizeRoomCode(x){
+  return (x || "").trim().toUpperCase();
+}
+
+
 async function askName(){
   return new Promise(res => {
     const m = document.getElementById("nameModal");
@@ -295,12 +301,13 @@ window.supabase = supabase;
   // --- Persistenter Session-Store (Desktop) ---
   const LS_KEY = "teamAvail:v1";
 
-  function saveSessionPrefs(){
+function saveSessionPrefs(){
   localStorage.setItem(LS_KEY, JSON.stringify({
-    room,
+    room: normalizeRoomCode(room),
     name: document.getElementById("myName").value.trim()
   }));
 }
+
 
   function loadSessionPrefs(){
     try { return JSON.parse(localStorage.getItem(LS_KEY) || "{}"); }
@@ -760,48 +767,46 @@ function renderTabLabels(){
 
   }
 
-  async function toggleSlot(key){
+async function toggleSlot(key){
+  if (!room) return notify("Bitte zuerst Erstellen oder Beitreten.", "warn");
 
-console.log("ROOM VALUE RAW:", room);
-console.log("ROOM VALUE JSON:", JSON.stringify(room));
-console.log("ROOM VALUE BRACKETS:", "[" + room + "]");
-
-    if (!room) return notify("Bitte zuerst Erstellen oder Beitreten.", "warn");
-
+  // Auth-UID sicher holen
   const { data: { user }, error: userErr } = await supabase.auth.getUser();
   if (userErr || !user) return notify("Nicht eingeloggt.", "warn");
+  myUserId = user.id;
 
-    myUserId = user.id; // ✅ global setzen
+  // room_code normalisieren (und für FK exakt matchen)
+  const roomCode = (room || "").trim().toUpperCase();
 
-    const isOn = myHas(key);
+  // Debug (soll jetzt definitiv in der Konsole erscheinen)
+  console.warn("TOGGLESLOT HIT", { roomRaw: room, roomCode, myUserId, key });
 
-    if (!isOn){
-      const { error } = await supabase
-        .from("availability")
-const roomCode = (room || "").trim(); // optional: .toUpperCase()
-if (!roomCode) return notify("Room-Code fehlt.", "warn");
+  const isOn = myHas(key);
 
-const { error } = await supabase
-  .from("availability")
-console.warn("TOGGLESLOT HIT", { room, myUserId, key });
+  if (!isOn){
+    const { error } = await supabase
+      .from("availability")
+      .upsert({ room_code: roomCode, user_id: myUserId, slot_key: key });
 
-  .upsert({ room_code: roomCode, user_id: myUserId, slot_key: key });
-
-      if (error){ console.error(error); return notify("Speichern fehlgeschlagen (RLS?).", "warn"); }
-    } else {
-      const { error } = await supabase
-        .from("availability")
-        .delete()
-        .match({ room_code: roomCode, user_id: myUserId, slot_key: key });
-
-
-      if (error){ console.error(error); return notify("Löschen fehlgeschlagen (RLS?).", "warn"); }
+    if (error){
+      console.error("UPSERT ERROR", error);
+      return notify("Speichern fehlgeschlagen.", "warn");
     }
-    // Realtime lädt dann neu
+  } else {
+    const { error } = await supabase
+      .from("availability")
+      .delete()
+      .match({ room_code: roomCode, user_id: myUserId, slot_key: key });
 
-       await loadRoomState();
-       renderAll();
+    if (error){
+      console.error("DELETE ERROR", error);
+      return notify("Löschen fehlgeschlagen.", "warn");
+    }
   }
+
+  await loadRoomState();
+  renderAll();
+}
 
  // --- Wiring ---
 document.getElementById("createBtn").onclick = () => createRoom().catch(e => console.error(e));
@@ -870,7 +875,10 @@ window.joinViaInviteIfPresent = async () => {
     return notify(`Invite ungültig: ${error.message}`, "warn");
   }
 
-  room = String(roomCode).toUpperCase();
+room = normalizeRoomCode(roomCode);
+me = name.trim();
+saveSessionPrefs();
+ 
   document.getElementById("roomCode").value = room;
   document.getElementById("myName").value = name.trim();
 
@@ -891,12 +899,13 @@ window.joinViaInviteIfPresent = async () => {
 // --- Auto Reconnect ---
 async function autoReconnect(){
   const saved = loadSessionPrefs();
-  if (!saved.room || !saved.name) return;
+  const savedRoom = normalizeRoomCode(saved.room);
+  if (!savedRoom || !saved.name) return;
 
   await ensureSignedInAnon();
 
-  room = saved.room;
-  me = saved.name;
+  room = savedRoom;
+  me = saved.name.trim();
 
   document.getElementById("roomCode").value = room;
   document.getElementById("myName").value = me;
@@ -908,6 +917,7 @@ async function autoReconnect(){
   renderAll();
   notify(`Wieder verbunden: ${room} ✅`, "ok");
 }
+
 
 
 // --- Tabs + Init ---
