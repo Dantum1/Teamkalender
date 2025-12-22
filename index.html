@@ -618,8 +618,10 @@ function renderTabLabels(){
     const { data: sess } = await supabase.auth.getSession();
     if (sess?.session?.user?.id){
       myUserId = sess.session.user.id;
-      return;
+      return true;
     }
+      retunr false;
+}
     const { error } = await supabase.auth.signInAnonymously();
     if (error) {
       console.error(error);
@@ -760,12 +762,12 @@ function renderTabLabels(){
 
   async function toggleSlot(key){
     if (!room) return notify("Bitte zuerst Erstellen oder Beitreten.", "warn");
-    if (!myUserId) return notify("Nicht eingeloggt (anon auth).", "warn");
 
   const { data: { user }, error: userErr } = await supabase.auth.getUser();
   if (userErr || !user) return notify("Nicht eingeloggt.", "warn");
 
-  const myUserId = user.id;
+    myUserId = user.id; // ✅ global setzen
+
     const isOn = myHas(key);
 
     if (!isOn){
