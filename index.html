@@ -374,7 +374,8 @@ function initials(name){
   const hourFromEl = document.getElementById("hourFrom");
   const hourToEl = document.getElementById("hourTo");
   const slotMinutesEl = document.getElementById("slotMinutes");
-  const modeEl = document.getElementById("mode");
+  const modeHomeEl = document.getElementById("modeHome");
+  const modeCalendarEl = document.getElementById("modeCalendar");
   const tbl = document.getElementById("tbl");
   const rangeLabel = document.getElementById("rangeLabel");
   const suggestionsEl = document.getElementById("suggestions");
@@ -434,7 +435,9 @@ async function copyToClipboard(text){
     hourFromEl.value = String(ui.hourFrom);
     hourToEl.value = String(ui.hourTo);
     slotMinutesEl.value = String(ui.slotMinutes);
-    modeEl.value = ui.mode;
+    if (modeHomeEl) modeHomeEl.value = ui.mode;
+    if (modeCalendarEl) modeCalendarEl.value = ui.mode;
+
   }
 
   function getDays(){
@@ -907,7 +910,20 @@ for (const btn of inviteBtns){
   hourFromEl.onchange = () => { ui.hourFrom = Number(hourFromEl.value); renderAll(); };
   hourToEl.onchange = () => { ui.hourTo = Number(hourToEl.value); renderAll(); };
   slotMinutesEl.onchange = () => { ui.slotMinutes = Number(slotMinutesEl.value); renderAll(); };
-  modeEl.onchange = () => { ui.mode = modeEl.value; renderAll(); };
+  if (modeHomeEl){
+  modeHomeEl.onchange = () => {
+    ui.mode = modeHomeEl.value;
+    renderAll();
+  };
+}
+
+if (modeCalendarEl){
+  modeCalendarEl.onchange = () => {
+    ui.mode = modeCalendarEl.value;
+    renderAll();
+  };
+}
+
 
   // Defaults
   if (!ui.startDate) ui.startDate = ymd(new Date());
