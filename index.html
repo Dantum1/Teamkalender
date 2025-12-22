@@ -598,6 +598,7 @@ function renderTabLabels(){
 }
 
   function renderTable(){
+    try {
 console.warn("renderTable() start");
 
     const days = getDays();
@@ -631,14 +632,12 @@ console.warn("renderTable() start");
           div.style.background = on ? "rgba(34, 187, 119, 0.14)" : "transparent";
           div.onclick = () => toggleSlot(key);
 
-function renderTable(){
-  try {
-    // ... dein ganzer renderTable code bleibt gleich ...
   } catch (e) {
     console.error("renderTable crashed:", e);
     throw e;
   }
-}
+
+
 
 } else {
   const key = slotKey(dateStr, h, m);
