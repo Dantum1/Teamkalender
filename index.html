@@ -783,36 +783,58 @@ function renderTabLabels(){
     renderTable();
   }
 
- async function ensureSignedIn() {
+async function ensureSignedIn() {
   console.log("[ensureSignedIn] start");
 
-  const { data, error } = await supabase.auth.getSession();
+  // Timeout-Schutz, falls getSession() aus irgendeinem Grund hängt
+  const timeoutMs = 4000;
+  const timeout = new Promise((_, rej) =>
+    setTimeout(() => rej(new Error("ensureSignedIn timeout (getSession took too long)")), timeoutMs)
+  );
 
-  console.log("[ensureSignedIn] getSession result:", data, error);
+  const result = await Promise.race([
+    supabase.auth.getSession(),
+    timeout
+  ]);
+
+  const { data, error } = result;
+
+  console.log("[ensureSignedIn] getSession:", { session: data?.session, error });
 
   if (error) {
-    console.error("[ensureSignedIn] error:", error);
+    console.error("[ensureSignedIn] getSession error:", error);
     throw error;
   }
 
-  if (!data || !data.session) {
+  const session = data?.session;
+
+  if (!session?.user?.id) {
     console.warn("[ensureSignedIn] NO SESSION → showAuth()");
     showAuth();
     throw new Error("Not signed in");
   }
 
-  console.log("[ensureSignedIn] session OK, user:", data.session.user);
+  myUserId = session.user.id;
+  console.log("[ensureSignedIn] OK userId:", myUserId);
 
-  myUserId = data.session.user.id;
-  return data.session.user;
+  return session.user;
 }
 
 function showAuth(){
-  document.getElementById("authModal").style.display = "flex";
+  const m = document.getElementById("authModal");
+  if (!m) {
+    console.error("[showAuth] authModal not found in DOM");
+    return;
+  }
+  m.style.display = "flex";
 }
+
 function hideAuth(){
-  document.getElementById("authModal").style.display = "none";
+  const m = document.getElementById("authModal");
+  if (!m) return;
+  m.style.display = "none";
 }
+
 
 async function loadMyProfile(user){
   const { data, error } = await supabase
