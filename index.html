@@ -761,7 +761,10 @@ function renderTabLabels(){
   }
 
   async function toggleSlot(key){
-console.log("ROOM VALUE:", JSON.stringify(room));
+
+console.log("ROOM VALUE RAW:", room);
+console.log("ROOM VALUE JSON:", JSON.stringify(room));
+console.log("ROOM VALUE BRACKETS:", "[" + room + "]");
 
     if (!room) return notify("Bitte zuerst Erstellen oder Beitreten.", "warn");
 
