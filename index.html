@@ -598,6 +598,8 @@ function renderTabLabels(){
 }
 
   function renderTable(){
+console.warn("renderTable() start");
+
     const days = getDays();
     const times = getTimes();
 
@@ -666,6 +668,15 @@ function renderTabLabels(){
   }
 
   function renderAll(){
+console.warn("renderAll()", {
+  startDate: ui.startDate,
+  daysCount: ui.daysCount,
+  hourFrom: ui.hourFrom,
+  hourTo: ui.hourTo,
+  slotMinutes: ui.slotMinutes,
+  mode: ui.mode
+});
+
     syncControls();
     renderPlayers();
     renderSuggestions();
