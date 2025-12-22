@@ -676,25 +676,25 @@ function renderTabLabels(){
 
   // --- DB load ---
   async function ensureSignedInAnon(){
-    const { data: sess } = await supabase.auth.getSession();
-    if (sess?.session?.user?.id){
-      myUserId = sess.session.user.id;
-      return true;
-    }
-      return false;
-}
-    const { error } = await supabase.auth.signInAnonymously();
-    if (error) {
-      console.error(error);
-      notify("Auth fehlgeschlagen (Anonymous evtl. deaktiviert).", "warn");
-      throw error;
-    }
-    const { data: sess2 } = await supabase.auth.getSession();
-    myUserId = sess2?.session?.user?.id || "";
-    if (!myUserId) throw new Error("Keine Session nach anon login.");
-  
-}
-  
+  const { data: sess } = await supabase.auth.getSession();
+
+  if (sess?.session?.user?.id){
+    myUserId = sess.session.user.id;
+    return true;
+  }
+
+  const { error } = await supabase.auth.signInAnonymously();
+  if (error) {
+    console.error(error);
+    notify("Auth fehlgeschlagen (Anonymous evtl. deaktiviert).", "warn");
+    throw error;
+  }
+
+  const { data: sess2 } = await supabase.auth.getSession();
+  myUserId = sess2?.session?.user?.id || "";
+
+  if (!myUserId) throw new Error("Keine Session nach anon login.");
+
   return true;
 }
 
