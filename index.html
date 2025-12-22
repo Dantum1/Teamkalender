@@ -297,20 +297,24 @@ async function askName(){
 
 
 
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+const SUPABASE_URL = "https://ipsxbbbdnsufpfbqsqqv.supabase.co";
+const SUPABASE_ANON_KEY = "DEIN_ANON_KEY";
 
-  // ✅ HIER ANPASSEN:
-  const SUPABASE_URL = "https://ipsxbbbdnsufpfbqsqqv.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlwc3hiYmJkbnN1ZnBmYnFzcXF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NjUzNTYsImV4cCI6MjA4MTE0MTM1Nn0.JCDyw6e9stz-mQpUp-mqjzet9-NeyofKSYYiD-ZJHJo";
-
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-	auth: {
-   persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true
+const supabase = createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
   }
-});
+);
+
+window.supabase = supabase;
 
 
 window.supabase = supabase;
