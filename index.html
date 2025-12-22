@@ -762,6 +762,10 @@ function renderTabLabels(){
     if (!room) return notify("Bitte zuerst Erstellen oder Beitreten.", "warn");
     if (!myUserId) return notify("Nicht eingeloggt (anon auth).", "warn");
 
+  const { data: { user }, error: userErr } = await supabase.auth.getUser();
+  if (userErr || !user) return notify("Nicht eingeloggt.", "warn");
+
+  const myUserId = user.id;
     const isOn = myHas(key);
 
     if (!isOn){
