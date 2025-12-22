@@ -783,6 +783,8 @@ if (!roomCode) return notify("Room-Code fehlt.", "warn");
 
 const { error } = await supabase
   .from("availability")
+console.warn("TOGGLESLOT HIT", { room, myUserId, key });
+
   .upsert({ room_code: roomCode, user_id: myUserId, slot_key: key });
 
       if (error){ console.error(error); return notify("Speichern fehlgeschlagen (RLS?).", "warn"); }
