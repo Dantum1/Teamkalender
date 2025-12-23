@@ -669,39 +669,7 @@ function renderTable(){
 }
 
 
-  // Kürzel anzeigen
-  div.textContent = c ? names.join("/") : "";
-
-  // Styling
-  const ratio = members.length ? c / members.length : 0;
-
-  if (c === members.length && c > 0){
-    // ALLE können → grün
-    div.style.background = "rgba(34, 187, 119, 0.25)";
-    div.classList.add("on");
-  } else if (c > 0){
-    // teilweise → blau
-    div.style.background = "rgba(120, 170, 255, 0.22)";
-    div.classList.remove("on");
-  } else {
-    div.style.background = "transparent";
-    div.classList.remove("on");
-  }
-
-  div.onclick = () =>
-    notify("Wechsle auf 'Ich (klicken)' um Slots zu setzen.", "warn");
-}
-
-
-
-        td.appendChild(div);
-        tr.appendChild(td);
-      }
-      tbl.appendChild(tr);
-    }
-  }
-
-  function renderAll(){
+   function renderAll(){
 console.warn("renderAll()", {
   startDate: ui.startDate,
   daysCount: ui.daysCount,
