@@ -668,10 +668,6 @@ function renderTable(){
   }
 }
 
-  else {
-  const key = slotKey(dateStr, h, m);
-  const names = overlapInitials(key);   // ["L","C","K"]
-  const c = names.length;
 
   // Kürzel anzeigen
   div.textContent = c ? names.join("/") : "";
