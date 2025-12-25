@@ -94,6 +94,27 @@
   </div>
 </div>
 
+<div id="authModal" class="modal" style="display:none;">
+  <div class="modalCard">
+    <h3>Login 🔐</h3>
+    <p class="muted">Bitte einloggen, damit nicht ständig neue User entstehen.</p>
+
+    <label>Email</label>
+    <input id="authEmail" placeholder="mail@domain.de" type="email">
+
+    <label style="margin-top:10px;">Passwort</label>
+    <input id="authPass" placeholder="Passwort" type="password">
+
+    <div id="authMsg" class="muted" style="margin-top:10px;"></div>
+
+    <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
+      <button id="authCancel" type="button">Abbrechen</button>
+      <button id="authOk" type="button">Login</button>
+    </div>
+  </div>
+</div>
+
+
 <header>
   <h1>🧩 Team Availability – Live</h1>
   <span class="muted">Erstellen/Beitreten → Slots klicken → alle sehen Updates in Echtzeit</span>
@@ -689,30 +710,54 @@ console.warn("renderAll()", {
     renderTable();
   }
 
-  // --- DB load ---
-  async function ensureSignedInAnon(){
+  async function ensureLoggedIn(){
   const { data: sess } = await supabase.auth.getSession();
-
   if (sess?.session?.user?.id){
     myUserId = sess.session.user.id;
     return true;
   }
 
-  const { error } = await supabase.auth.signInAnonymously();
-  if (error) {
-    console.error(error);
-    notify("Auth fehlgeschlagen (Anonymous evtl. deaktiviert).", "warn");
-    throw error;
-  }
+  // Login-Modal anzeigen
+  return new Promise((resolve) => {
+    const m = document.getElementById("authModal");
+    const emailEl = document.getElementById("authEmail");
+    const passEl  = document.getElementById("authPass");
+    const btnOk   = document.getElementById("authOk");
+    const btnX    = document.getElementById("authCancel");
+    const msgEl   = document.getElementById("authMsg");
 
-  const { data: sess2 } = await supabase.auth.getSession();
-  myUserId = sess2?.session?.user?.id || "";
+    msgEl.textContent = "";
+    m.style.display = "flex";
+    emailEl.focus();
 
-  if (!myUserId) throw new Error("Keine Session nach anon login.");
+    btnX.onclick = () => {
+      m.style.display = "none";
+      resolve(false);
+    };
 
-  return true;
+    btnOk.onclick = async () => {
+      msgEl.textContent = "…";
+      const email = emailEl.value.trim();
+      const password = passEl.value;
+
+      if (!email || !password){
+        msgEl.textContent = "Bitte Email + Passwort eingeben.";
+        return;
+      }
+
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error){
+        msgEl.textContent = error.message;
+        return;
+      }
+
+      const { data: sess2 } = await supabase.auth.getSession();
+      myUserId = sess2?.session?.user?.id || "";
+      m.style.display = "none";
+      resolve(!!myUserId);
+    };
+  });
 }
-
   async function loadRoomState(){
     // Members
     const { data: mem, error: meErr } = await supabase
@@ -763,7 +808,9 @@ console.warn("renderAll()", {
     if (joining) return;
     joining = true;
     try {
-      await ensureSignedInAnon();
+      const ok = await ensureLoggedIn();
+if (!ok) return notify("Bitte einloggen.", "warn");
+
 
       room = document.getElementById("roomCode").value.trim().toUpperCase();
       me = document.getElementById("myName").value.trim();
@@ -803,7 +850,9 @@ console.warn("renderAll()", {
     if (joining) return;
     joining = true;
     try {
-      await ensureSignedInAnon();
+      const ok = await ensureLoggedIn();
+if (!ok) return notify("Bitte einloggen.", "warn");
+
 
       room = document.getElementById("roomCode").value.trim().toUpperCase();
       me = document.getElementById("myName").value.trim();
