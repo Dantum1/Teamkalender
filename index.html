@@ -713,40 +713,25 @@ console.warn("renderAll()", {
     renderTable();
   }
 
-  async function ensureLoggedIn(){
+async function ensureLoggedIn(){
   const { data: sess } = await supabase.auth.getSession();
-  if (sess?.session?.user?.id){
-    myUserId = sess.session.user.id;
+  const user = sess?.session?.user;
+
+  // Falls du noch irgendwo anon drin hängst → ausloggen und echten Login erzwingen
+  if (user && (user.is_anonymous || user.app_metadata?.provider === "anonymous")) {
+    await supabase.auth.signOut();
+  } else if (user?.id) {
+    myUserId = user.id;
     return true;
   }
 
-const btnSignup = document.getElementById("authSignup");
-
-btnSignup.onclick = async () => {
-  msgEl.textContent = "…";
-  const email = emailEl.value.trim();
-  const password = passEl.value;
-
-  if (!email || !password){
-    msgEl.textContent = "Bitte Email + Passwort eingeben.";
-    return;
-  }
-
-  const { error } = await supabase.auth.signUp({ email, password });
-  if (error){
-    msgEl.textContent = error.message;
-    return;
-  }
-
-  msgEl.textContent = "Registriert. Falls Email-Bestätigung aktiv ist: Mail bestätigen, dann Login.";
-};
-
-  // Login-Modal anzeigen
+  // Modal/Login anzeigen
   return new Promise((resolve) => {
     const m = document.getElementById("authModal");
     const emailEl = document.getElementById("authEmail");
     const passEl  = document.getElementById("authPass");
     const btnOk   = document.getElementById("authOk");
+    const btnSignup = document.getElementById("authSignup");
     const btnX    = document.getElementById("authCancel");
     const msgEl   = document.getElementById("authMsg");
 
@@ -775,13 +760,34 @@ btnSignup.onclick = async () => {
         return;
       }
 
-      const { data: sess2 } = await supabase.auth.getSession();
-      myUserId = sess2?.session?.user?.id || "";
-      m.style.display = "none";
-      resolve(!!myUserId);
+      supabase.auth.getSession().then(({ data }) => {
+        myUserId = data?.session?.user?.id || "";
+        m.style.display = "none";
+        resolve(!!myUserId);
+      });
+    };
+
+    btnSignup.onclick = async () => {
+      msgEl.textContent = "…";
+      const email = emailEl.value.trim();
+      const password = passEl.value;
+
+      if (!email || !password){
+        msgEl.textContent = "Bitte Email + Passwort eingeben.";
+        return;
+      }
+
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error){
+        msgEl.textContent = error.message;
+        return;
+      }
+
+      msgEl.textContent = "Registriert ✅ (Falls Email-Bestätigung aktiv ist: Mail bestätigen, dann Login.)";
     };
   });
 }
+
   async function loadRoomState(){
     // Members
     const { data: mem, error: meErr } = await supabase
