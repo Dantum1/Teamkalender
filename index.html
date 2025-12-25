@@ -110,6 +110,9 @@
     <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
       <button id="authCancel" type="button">Abbrechen</button>
       <button id="authOk" type="button">Login</button>
+      <button id="authSignup" type="button">Registrieren</button>
+      <button id="authOk" type="button">Login</button>
+
     </div>
   </div>
 </div>
@@ -716,6 +719,27 @@ console.warn("renderAll()", {
     myUserId = sess.session.user.id;
     return true;
   }
+
+const btnSignup = document.getElementById("authSignup");
+
+btnSignup.onclick = async () => {
+  msgEl.textContent = "…";
+  const email = emailEl.value.trim();
+  const password = passEl.value;
+
+  if (!email || !password){
+    msgEl.textContent = "Bitte Email + Passwort eingeben.";
+    return;
+  }
+
+  const { error } = await supabase.auth.signUp({ email, password });
+  if (error){
+    msgEl.textContent = error.message;
+    return;
+  }
+
+  msgEl.textContent = "Registriert. Falls Email-Bestätigung aktiv ist: Mail bestätigen, dann Login.";
+};
 
   // Login-Modal anzeigen
   return new Promise((resolve) => {
