@@ -989,7 +989,7 @@ window.joinViaInviteIfPresent = async () => {
   const token = params.get("invite");
   if (!token) return;
 
-  await ensureSignedInAnon();
+  await ensureLoggedIn();
 
   const name = await askName();
   if (!name) return;
@@ -1030,7 +1030,7 @@ async function autoReconnect(){
   const savedRoom = normalizeRoomCode(saved.room);
   if (!savedRoom || !saved.name) return;
 
-  await ensureSignedInAnon();
+  await ensureLoggedIn();
 
   room = savedRoom;
   me = saved.name.trim();
