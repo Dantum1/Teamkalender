@@ -112,98 +112,99 @@
 <section class="card" id="panelHome">
   <h2 style="margin:0 0 10px; font-size:16px;">Teamkalender</h2>
 
-  <!-- ✅ HIER deine bestehende Toolbar REINKOPIEREN -->
-<div class="toolbar" id="homeToolbar">
-  <label style="margin:0;">
-    <span class="muted">Room</span><br/>
-    <input id="roomCode" placeholder="TEAM-DEC" style="width:140px;">
-  </label>
+  <div class="toolbar" id="homeToolbar">
+    <label style="margin:0;">
+      <span class="muted">Room</span><br/>
+      <input id="roomCode" placeholder="TEAM-DEC" style="width:140px;">
+    </label>
 
-  <label style="margin:0;">
-    <span class="muted">Join-Code</span><br/>
-    <input id="joinCode" placeholder="secret123" style="width:140px;">
-  </label>
+    <label style="margin:0;">
+      <span class="muted">Join-Code</span><br/>
+      <input id="joinCode" placeholder="secret123" style="width:140px;">
+    </label>
 
-  <label style="margin:0;">
-    <span class="muted">Name</span><br/>
-    <input id="myName" placeholder="Name" style="width:140px;">
-  </label>
+    <label style="margin:0;">
+      <span class="muted">Name</span><br/>
+      <input id="myName" placeholder="Name" style="width:140px;">
+    </label>
 
-  <button id="createBtn">Erstellen</button>
-  <button id="joinBtn">Beitreten</button>
-  <button id="inviteBtn" type="button">Invite-Link kopieren</button>
-</div>
+    <button id="createBtn">Erstellen</button>
+    <button id="joinBtn">Beitreten</button>
+    <button id="inviteBtn" type="button">Invite-Link kopieren</button>
+  </div>
+</section>
+
 
 <div id="panelCalendar" style="display:none;">
 
-<div class="card" id="roomHeader" style="display:none; margin-bottom:12px;">
-  <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
-    <div>
-      <div class="muted" style="font-size:12px;">Team / Room</div>
-      <div id="roomTitle" style="font-weight:700; font-size:18px;">–</div>
-      <div id="roomMeta" class="muted" style="margin-top:4px;">–</div>
+  <div class="card" id="roomHeader" style="display:none; margin-bottom:12px;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+      <div>
+        <div class="muted" style="font-size:12px;">Team / Room</div>
+        <div id="roomTitle" style="font-weight:700; font-size:18px;">–</div>
+        <div id="roomMeta" class="muted" style="margin-top:4px;">–</div>
+      </div>
+      <div>
+        <button id="inviteBtnTop" type="button">Invite-Link kopieren</button>
+      </div>
     </div>
-    <div>
-      <button id="inviteBtnTop" type="button">Invite-Link kopieren</button>
-    </div>
+
+    <div class="muted" style="margin-top:12px;">Mitglieder</div>
+    <div id="memberChips" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;"></div>
   </div>
-
-  <div class="muted" style="margin-top:12px;">Mitglieder</div>
-  <div id="memberChips" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;"></div>
-</div>
-
-
-
 
   <div class="row">
 
     <section class="card left">
-      
-
       <div class="muted" style="margin-top:10px;">
-        In <b>Ich (klicken)</b> markierst du deine Slots. In <b>Overlap</b> siehst du wie viele können.
+        In <b>Ich (klicken)</b> markierst du deine Slots.  
+        In <b>Overlap</b> siehst du wie viele können.
       </div>
-<div class="toolbar" id="calendarToolbar" style="margin-top:10px;">
-  <span class="pill">Zeitraum: <b id="rangeLabel"></b></span>
 
-  <label style="margin:0;">
-    <span class="muted">Startdatum</span><br/>
-    <input id="startDate" type="date">
-  </label>
+      <div class="toolbar" id="calendarToolbar" style="margin-top:10px;">
+        <span class="pill">Zeitraum: <b id="rangeLabel"></b></span>
 
-  <label style="margin:0;">
-    <span class="muted">Tage</span><br/>
-    <select id="daysCount">
-      <option>5</option><option selected>7</option><option>10</option><option>14</option>
-    </select>
-  </label>
+        <label style="margin:0;">
+          <span class="muted">Startdatum</span><br/>
+          <input id="startDate" type="date">
+        </label>
 
-  <label style="margin:0;">
-    <span class="muted">Von</span><br/>
-    <select id="hourFrom"></select>
-  </label>
+        <label style="margin:0;">
+          <span class="muted">Tage</span><br/>
+          <select id="daysCount">
+            <option>5</option>
+            <option selected>7</option>
+            <option>10</option>
+            <option>14</option>
+          </select>
+        </label>
 
-  <label style="margin:0;">
-    <span class="muted">Bis</span><br/>
-    <select id="hourTo"></select>
-  </label>
+        <label style="margin:0;">
+          <span class="muted">Von</span><br/>
+          <select id="hourFrom"></select>
+        </label>
 
-  <label style="margin:0;">
-    <span class="muted">Slot</span><br/>
-    <select id="slotMinutes">
-      <option value="30">30 min</option>
-      <option value="60" selected>60 min</option>
-    </select>
-  </label>
+        <label style="margin:0;">
+          <span class="muted">Bis</span><br/>
+          <select id="hourTo"></select>
+        </label>
 
-  <label style="margin:0;">
-    <span class="muted">Ansicht</span><br/>
-    <select id="modeCalendar">
-      <option value="overlay" selected>Overlap (alle)</option>
-      <option value="me">Ich (klicken)</option>
-    </select>
-  </label>
-</div>
+        <label style="margin:0;">
+          <span class="muted">Slot</span><br/>
+          <select id="slotMinutes">
+            <option value="30">30 min</option>
+            <option value="60" selected>60 min</option>
+          </select>
+        </label>
+
+        <label style="margin:0;">
+          <span class="muted">Ansicht</span><br/>
+          <select id="modeCalendar">
+            <option value="overlay" selected>Overlap (alle)</option>
+            <option value="me">Ich (klicken)</option>
+          </select>
+        </label>
+      </div>
 
       <div class="gridWrap" style="margin-top:12px;">
         <table id="tbl"></table>
@@ -219,7 +220,8 @@
       </div>
 
       <div class="muted" style="margin-top:10px;">
-        Du brauchst keine “Spieler hinzufügen”-Funktion: Wer beitritt, wird automatisch Mitglied.
+        Du brauchst keine “Spieler hinzufügen”-Funktion:  
+        Wer beitritt, wird automatisch Mitglied.
       </div>
 
       <div class="players" id="players"></div>
@@ -234,8 +236,8 @@
 
       <div id="status" class="muted"></div>
     </aside>
-   </div>
- </div>
+
+  </div>
 </div>
 
 
