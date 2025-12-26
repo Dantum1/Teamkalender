@@ -1322,35 +1322,6 @@ window.addEventListener("DOMContentLoaded", async () => {
   renderAccountChip();
 });
 
-  setTab = function(which){
-    const isHome = which === "home";
-    panelHome.style.display = isHome ? "" : "none";
-    panelCalendar.style.display = isHome ? "none" : "";
-    tabHome.classList.toggle("active", isHome);
-    tabCalendar.classList.toggle("active", !isHome);
-  };
-
-  tabHome.onclick = () => setTab("home");
-  tabCalendar.onclick = () => setTab("calendar");
-  setTab("home");
-
-  const params = new URLSearchParams(location.search);
-  const hasInvite = params.has("invite");
-
-  try {
-    if (hasInvite) {
-      await window.joinViaInviteIfPresent();
-    } else {
-      await autoReconnect();
-    }
-  } catch (e) {
-    console.error(e);
-  }
-
-
-  });
-
-
-</script>
+  </script>
 </body>
 </html>
