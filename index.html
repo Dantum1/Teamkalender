@@ -61,6 +61,33 @@
 .ddTitle{ font-weight:650; }
 .ddSub{ font-size:12px; opacity:.8; margin-top:2px; overflow-wrap:anywhere; }
 
+.ddAccountRow{
+  display:flex;
+  gap:12px;
+  align-items:center;
+  padding:8px;
+}
+
+.ddLogoutBtn{
+  flex:0 0 auto;
+  padding:10px 14px;
+  border-radius:12px;
+  border:1px solid #3a2a2a;
+  background:#1a0f12;
+  color:#ffb4b4;
+  cursor:pointer;
+}
+.ddLogoutBtn:hover{
+  filter:brightness(1.1);
+}
+
+.ddAccountInfo{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  min-width:0;
+}
+
 .ddBtn{
   width:100%;
   text-align:left;
@@ -157,7 +184,9 @@
 <header>
   <h1>🧩 Team Availability – Live</h1>
   <span class="muted">Erstellen/Beitreten → Slots klicken → alle sehen Updates in Echtzeit</span>
-  <button onclick="logout()">Logout</button>
+  <button id="logoutBtn" type="button">
+	Logout
+</button>
 <span id="accountChip" class="pill" style="margin-left:auto; display:none;">
   <span id="accountName">–</span>
 </span>
@@ -168,19 +197,22 @@
   </button>
 
   <div id="accountMenu" class="dropdown">
-    <div class="ddRow">
-      <div class="ddTitle">Account</div>
-      <div id="accountEmail" class="ddSub">–</div>
-    </div>
+<div class="ddAccountRow">
+  <button id="logoutBtn" class="ddLogoutBtn" type="button">
+    Logout
+  </button>
 
-    <button id="copyAccountBtn" class="ddBtn" type="button">
-      <span>Account kopieren</span><span class="k">Email</span>
-    </button>
-
-    <button id="logoutBtn" class="ddBtn" type="button" style="margin-top:8px;">
-      <span>Logout</span><span class="k">Sign out</span>
-    </button>
+  <div class="ddAccountInfo">
+    <div class="ddTitle" id="accountNameMenu">–</div>
+    <div id="accountEmail" class="ddSub">–</div>
   </div>
+</div>
+
+<button id="copyAccountBtn" class="ddBtn" type="button" style="margin-top:10px;">
+  <span>Account kopieren</span><span class="k">Email</span>
+</button>
+
+      </div>
 </div>
 
 
@@ -347,6 +379,8 @@ async function logout(){
 async function renderAccountChip(){
   const chip = document.getElementById("accountChip");
   const nameEl = document.getElementById("accountName");
+  const nameMenuEl = document.getElementById("accountNameMenu");
+
   if (!chip || !nameEl) return;
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -360,6 +394,15 @@ async function renderAccountChip(){
   // "Accountname": nimm primär Email (stabil), optional mit deiner Room-Anzeige (myName)
   const email = user.email || "eingeloggt";
   const displayName = (document.getElementById("myName")?.value || "").trim();
+
+const displayName =
+  (document.getElementById("myName")?.value || "").trim() ||
+  email.split("@")[0];
+
+nameEl.textContent = displayName;        // Chip
+nameMenuEl.textContent = displayName;    // Menü
+emailEl.textContent = email;
+
 
   nameEl.textContent = displayName ? `${displayName} • ${email}` : email;
   chip.style.display = "inline-flex";
