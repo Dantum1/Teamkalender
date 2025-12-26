@@ -69,7 +69,8 @@
 }
 
 .ddLogoutBtn{
-  flex:0 0 auto;
+  flex: 0 0 auto;           
+  margin-left: auto;        
   padding:10px 14px;
   border-radius:12px;
   border:1px solid #3a2a2a;
@@ -77,6 +78,7 @@
   color:#ffb4b4;
   cursor:pointer;
 }
+
 .ddLogoutBtn:hover{
   filter:brightness(1.1);
 }
@@ -86,6 +88,7 @@
   flex-direction:column;
   gap:2px;
   min-width:0;
+  flex: 1 1 auto;
 }
 
 .ddBtn{
@@ -93,7 +96,7 @@
   text-align:left;
   display:flex;
   justify-content:space-between;
-  gap:10px;
+  gap:10px; 
   padding:10px 10px;
   border-radius:12px;
   border:1px solid #223248;
@@ -198,14 +201,14 @@
 
   <div id="accountMenu" class="dropdown">
 <div class="ddAccountRow">
-  <button id="logoutBtn" class="ddLogoutBtn" type="button">
-    Logout
-  </button>
-
   <div class="ddAccountInfo">
     <div class="ddTitle" id="accountNameMenu">–</div>
     <div id="accountEmail" class="ddSub">–</div>
   </div>
+
+  <button id="logoutBtn" class="ddLogoutBtn" type="button">
+    Logout
+  </button>
 </div>
 
 <button id="copyAccountBtn" class="ddBtn" type="button" style="margin-top:10px;">
@@ -377,17 +380,17 @@ async function logout(){
 
 async function renderAccountChip(){
   const wrap = document.getElementById("accountWrap");
-  const nameEl = document.getElementById("accountName");        // Chip
-  const nameMenuEl = document.getElementById("accountNameMenu"); // Dropdown
+  const chipNameEl = document.getElementById("accountName");
+  const nameMenuEl = document.getElementById("accountNameMenu");
   const emailEl = document.getElementById("accountEmail");
 
-  if (!wrap || !nameEl || !emailEl) return;
+  if (!wrap || !chipNameEl || !emailEl) return;
 
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user){
     wrap.style.display = "none";
-    nameEl.textContent = "–";
+    chipNameEl.textContent = "–";
     if (nameMenuEl) nameMenuEl.textContent = "–";
     emailEl.textContent = "–";
     closeAccountMenu();
@@ -399,12 +402,13 @@ async function renderAccountChip(){
     (document.getElementById("myName")?.value || "").trim() ||
     email.split("@")[0];
 
-  nameEl.textContent = displayName;
+  chipNameEl.textContent = displayName;
   if (nameMenuEl) nameMenuEl.textContent = displayName;
   emailEl.textContent = email;
 
   wrap.style.display = "";
 }
+
 
 
 async function askName(){
