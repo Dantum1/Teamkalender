@@ -38,7 +38,43 @@
     }
     .slot.on{ outline:1px solid #2f6a52; }
     .slot:hover{ filter:brightness(1.1); }
-    .pill{ display:inline-flex; gap:8px; align-items:center; padding:6px 10px; border-radius:999px; border:1px solid #24344a; background:#0b111a; font-size:12px; }
+    .pill{ display:inline-flex; gap:8px; align-items:center; padding:6px 10px; border-radius:999px; border:1px solid #24344a; background:#    0b111a; font-size:12px; }
+     .accountWrap{ position:relative; margin-left:auto; }
+.accountBtn{ display:inline-flex; align-items:center; gap:8px; }
+.accountBtn .chev{ opacity:.8; font-size:12px; }
+
+.dropdown{
+  position:absolute;
+  right:0; top: calc(100% + 8px);
+  min-width: 260px;
+  background:#0f1620;
+  border:1px solid #1b2735;
+  border-radius:14px;
+  box-shadow:0 12px 30px rgba(0,0,0,.35);
+  padding:8px;
+  display:none;
+  z-index:1000;
+}
+.dropdown.open{ display:block; }
+
+.ddRow{ padding:10px 10px; border-radius:12px; }
+.ddTitle{ font-weight:650; }
+.ddSub{ font-size:12px; opacity:.8; margin-top:2px; overflow-wrap:anywhere; }
+
+.ddBtn{
+  width:100%;
+  text-align:left;
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  padding:10px 10px;
+  border-radius:12px;
+  border:1px solid #223248;
+  background:#0b111a;
+}
+.ddBtn:hover{ filter:brightness(1.08); }
+.ddBtn .k{ opacity:.7; font-size:12px; }
+
     .list{ display:flex; flex-direction:column; gap:10px; margin-top:10px; }
     .item{ border:1px solid #1b2735; border-radius:14px; padding:10px 12px; background:#0b111a; }
     .item .top{ display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; }
@@ -121,6 +157,33 @@
 <header>
   <h1>🧩 Team Availability – Live</h1>
   <span class="muted">Erstellen/Beitreten → Slots klicken → alle sehen Updates in Echtzeit</span>
+  <button onclick="logout()">Logout</button>
+<span id="accountChip" class="pill" style="margin-left:auto; display:none;">
+  <span id="accountName">–</span>
+</span>
+<div class="accountWrap" id="accountWrap" style="display:none;">
+  <button id="accountChip" class="pill accountBtn" type="button">
+    <span id="accountName">–</span>
+    <span class="chev">▾</span>
+  </button>
+
+  <div id="accountMenu" class="dropdown">
+    <div class="ddRow">
+      <div class="ddTitle">Account</div>
+      <div id="accountEmail" class="ddSub">–</div>
+    </div>
+
+    <button id="copyAccountBtn" class="ddBtn" type="button">
+      <span>Account kopieren</span><span class="k">Email</span>
+    </button>
+
+    <button id="logoutBtn" class="ddBtn" type="button" style="margin-top:8px;">
+      <span>Logout</span><span class="k">Sign out</span>
+    </button>
+  </div>
+</div>
+
+
 </header>
 
 
@@ -267,10 +330,39 @@
 
 <script type="module">
 
-// ===== Name Modal Helper =====
+
 
 function normalizeRoomCode(x){
   return (x || "").trim().toUpperCase();
+}
+
+
+async function logout(){
+  await supabase.auth.signOut();
+  forgetSessionPrefs();
+  location.reload();
+}
+
+
+async function renderAccountChip(){
+  const chip = document.getElementById("accountChip");
+  const nameEl = document.getElementById("accountName");
+  if (!chip || !nameEl) return;
+
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user){
+    chip.style.display = "none";
+    nameEl.textContent = "–";
+    return;
+  }
+
+  // "Accountname": nimm primär Email (stabil), optional mit deiner Room-Anzeige (myName)
+  const email = user.email || "eingeloggt";
+  const displayName = (document.getElementById("myName")?.value || "").trim();
+
+  nameEl.textContent = displayName ? `${displayName} • ${email}` : email;
+  chip.style.display = "inline-flex";
 }
 
 
@@ -307,6 +399,10 @@ async function askName(){
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlwc3hiYmJkbnN1ZnBmYnFzcXF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NjUzNTYsImV4cCI6MjA4MTE0MTM1Nn0.JCDyw6e9stz-mQpUp-mqjzet9-NeyofKSYYiD-ZJHJo";
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+supabase.auth.onAuthStateChange((_event, session) => {
+  myUserId = session?.user?.id || "";
+  renderAccountChip();
+});
 
 
 window.supabase = supabase;
@@ -427,6 +523,57 @@ async function copyToClipboard(text){
     document.body.removeChild(ta);
     return ok;
   }
+}
+
+function closeAccountMenu(){
+  const menu = document.getElementById("accountMenu");
+  if (menu) menu.classList.remove("open");
+}
+
+function toggleAccountMenu(){
+  const menu = document.getElementById("accountMenu");
+  if (!menu) return;
+  menu.classList.toggle("open");
+}
+
+async function doLogout(){
+  await supabase.auth.signOut();
+  forgetSessionPrefs();
+  // UI reset
+  room = "";
+  me = "";
+  myUserId = "";
+  members = [];
+  availabilityByUser = new Map();
+  closeAccountMenu();
+  renderAll();
+  notify("Ausgeloggt ✅", "ok");
+  setTab("home");
+}
+
+async function renderAccountChip(){
+  const wrap = document.getElementById("accountWrap");
+  const nameEl = document.getElementById("accountName");
+  const emailEl = document.getElementById("accountEmail");
+  if (!wrap || !nameEl || !emailEl) return;
+
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user){
+    wrap.style.display = "none";
+    nameEl.textContent = "–";
+    emailEl.textContent = "–";
+    closeAccountMenu();
+    return;
+  }
+
+  const email = user.email || "eingeloggt";
+  const displayName = (document.getElementById("myName")?.value || "").trim();
+
+  nameEl.textContent = displayName ? displayName : (email.split("@")[0] || email);
+  emailEl.textContent = email;
+
+  wrap.style.display = "";
 }
 
 // Prefill room from ?room=...
@@ -763,6 +910,7 @@ async function ensureLoggedIn(){
       supabase.auth.getSession().then(({ data }) => {
         myUserId = data?.session?.user?.id || "";
         m.style.display = "none";
+        await renderAccountChip();
         resolve(!!myUserId);
       });
     };
@@ -1012,6 +1160,8 @@ if (modeCalendarEl){
   // Defaults
   if (!ui.startDate) ui.startDate = ymd(new Date());
   renderAll();
+  renderAccountChip();
+
 
 // --- Invite Join ---
 window.joinViaInviteIfPresent = async () => {
@@ -1048,6 +1198,7 @@ saveSessionPrefs();
 
   ui.mode = "me";
   renderAll();
+  await renderAccountChip();
   setTab("calendar");
   history.replaceState({}, "", location.pathname);
   notify("Beigetreten ✅", "ok");
@@ -1073,6 +1224,8 @@ async function autoReconnect(){
 
   ui.mode = "me";
   renderAll();
+  await renderAccountChip();
+
   notify(`Wieder verbunden: ${room} ✅`, "ok");
 }
 
@@ -1089,6 +1242,40 @@ window.addEventListener("DOMContentLoaded", async () => {
   if (!panelHome || !panelCalendar || !tabHome || !tabCalendar) {
     console.error("Tabs nicht gefunden", { panelHome, panelCalendar, tabHome, tabCalendar });
     return;
+
+
+// --- Account Menu Wiring ---
+const accountChipBtn = document.getElementById("accountChip");
+const accountMenu = document.getElementById("accountMenu");
+const copyAccountBtn = document.getElementById("copyAccountBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+
+if (accountChipBtn && accountMenu){
+  accountChipBtn.onclick = (e) => {
+    e.stopPropagation();
+    toggleAccountMenu();
+  };
+
+  // Klick außerhalb schließt
+  document.addEventListener("click", () => closeAccountMenu());
+
+  // Klick im Menü soll NICHT sofort schließen (nur Buttons machen Aktionen)
+  accountMenu.addEventListener("click", (e) => e.stopPropagation());
+}
+
+if (copyAccountBtn){
+  copyAccountBtn.onclick = async () => {
+    const txt = document.getElementById("accountEmail")?.textContent || "";
+    const ok = await copyToClipboard(txt);
+    notify(ok ? "Account kopiert ✅" : "Kopieren fehlgeschlagen.", ok ? "ok" : "warn");
+    closeAccountMenu();
+  };
+}
+
+if (logoutBtn){
+  logoutBtn.onclick = () => doLogout().catch(console.error);
+}
+
   }
 
   setTab = function(which){
