@@ -551,31 +551,6 @@ async function doLogout(){
   setTab("home");
 }
 
-async function renderAccountChip(){
-  const wrap = document.getElementById("accountWrap");
-  const nameEl = document.getElementById("accountName");
-  const emailEl = document.getElementById("accountEmail");
-  if (!wrap || !nameEl || !emailEl) return;
-
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user){
-    wrap.style.display = "none";
-    nameEl.textContent = "–";
-    emailEl.textContent = "–";
-    closeAccountMenu();
-    return;
-  }
-
-  const email = user.email || "eingeloggt";
-  const displayName = (document.getElementById("myName")?.value || "").trim();
-
-  nameEl.textContent = displayName ? displayName : (email.split("@")[0] || email);
-  emailEl.textContent = email;
-
-  wrap.style.display = "";
-}
-
 // Prefill room from ?room=...
 (function prefillFromUrl(){
   const params = new URLSearchParams(location.search);
