@@ -375,37 +375,35 @@ async function logout(){
   location.reload();
 }
 
-
 async function renderAccountChip(){
-  const chip = document.getElementById("accountChip");
-  const nameEl = document.getElementById("accountName");
-  const nameMenuEl = document.getElementById("accountNameMenu");
+  const wrap = document.getElementById("accountWrap");
+  const nameEl = document.getElementById("accountName");        // Chip
+  const nameMenuEl = document.getElementById("accountNameMenu"); // Dropdown
+  const emailEl = document.getElementById("accountEmail");
 
-  if (!chip || !nameEl) return;
+  if (!wrap || !nameEl || !emailEl) return;
 
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user){
-    chip.style.display = "none";
+    wrap.style.display = "none";
     nameEl.textContent = "–";
+    if (nameMenuEl) nameMenuEl.textContent = "–";
+    emailEl.textContent = "–";
+    closeAccountMenu();
     return;
   }
 
-  // "Accountname": nimm primär Email (stabil), optional mit deiner Room-Anzeige (myName)
   const email = user.email || "eingeloggt";
-  const displayName = (document.getElementById("myName")?.value || "").trim();
+  const displayName =
+    (document.getElementById("myName")?.value || "").trim() ||
+    email.split("@")[0];
 
-const displayName =
-  (document.getElementById("myName")?.value || "").trim() ||
-  email.split("@")[0];
+  nameEl.textContent = displayName;
+  if (nameMenuEl) nameMenuEl.textContent = displayName;
+  emailEl.textContent = email;
 
-nameEl.textContent = displayName;        // Chip
-nameMenuEl.textContent = displayName;    // Menü
-emailEl.textContent = email;
-
-
-  nameEl.textContent = displayName ? `${displayName} • ${email}` : email;
-  chip.style.display = "inline-flex";
+  wrap.style.display = "";
 }
 
 
