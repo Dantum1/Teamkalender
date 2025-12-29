@@ -1268,6 +1268,9 @@ window.addEventListener("DOMContentLoaded", async () => {
   tabCalendar.onclick = () => setTab("calendar");
   setTab("home");
 
+const ok = await ensureLoggedIn();
+if (!ok) return;
+
   const params = new URLSearchParams(location.search);
   const hasInvite = params.has("invite");
 
