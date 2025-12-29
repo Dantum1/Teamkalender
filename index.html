@@ -187,12 +187,7 @@
 <header>
   <h1>🧩 Team Availability – Live</h1>
   <span class="muted">Erstellen/Beitreten → Slots klicken → alle sehen Updates in Echtzeit</span>
-  <button id="logoutBtn" type="button">
-	Logout
-</button>
-<span id="accountChip" class="pill" style="margin-left:auto; display:none;">
-  <span id="accountName">–</span>
-</span>
+ 
 <div class="accountWrap" id="accountWrap" style="display:none;">
   <button id="accountChip" class="pill accountBtn" type="button">
     <span id="accountName">–</span>
@@ -206,7 +201,7 @@
     <div id="accountEmail" class="ddSub">–</div>
   </div>
 
-  <button id="logoutBtn" class="ddLogoutBtn" type="button">
+  <button id="accountlogoutBtn" class="ddLogoutBtn" type="button">
     Logout
   </button>
 </div>
@@ -372,15 +367,11 @@ function normalizeRoomCode(x){
 }
 
 
-async function logout(){
-  await supabase.auth.signOut();
-  forgetSessionPrefs();
-  location.reload();
-}
+
 
 async function renderAccountChip(){
   const wrap = document.getElementById("accountWrap");
-  const chipNameEl = document.getElementById("accountName");
+  const chipNameEl = document.getElementById("accountNameChip");
   const nameMenuEl = document.getElementById("accountNameMenu");
   const emailEl = document.getElementById("accountEmail");
 
@@ -1291,10 +1282,10 @@ window.addEventListener("DOMContentLoaded", async () => {
   }
 
   // --- Account Menu Wiring ---
-  const accountChipBtn = document.getElementById("accountChip");
+  const accountChipBtn = document.getElementById("accountChipBtn");
   const accountMenu = document.getElementById("accountMenu");
   const copyAccountBtn = document.getElementById("copyAccountBtn");
-  const logoutBtn = document.getElementById("logoutBtn");
+  const logoutBtn = document.getElementById("accountlogoutBtn");
 
   if (accountChipBtn && accountMenu){
     accountChipBtn.onclick = (e) => {
