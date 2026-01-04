@@ -1174,7 +1174,8 @@ window.joinViaInviteIfPresent = async () => {
   const token = params.get("invite");
   if (!token) return;
 
-  await ensureLoggedIn();
+  const ok = await ensureLoggedIn();
+  if (!ok) return;
 
   const name = await askName();
   if (!name) return;
