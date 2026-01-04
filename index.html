@@ -1263,21 +1263,23 @@ window.addEventListener("DOMContentLoaded", async () => {
   tabCalendar.onclick = () => setTab("calendar");
   setTab("home");
 
-const ok = await ensureLoggedIn();
-if (!ok) return;
+const params = new URLSearchParams(location.search);
+const hasInvite = params.has("invite");
 
-  const params = new URLSearchParams(location.search);
-  const hasInvite = params.has("invite");
-
-  try {
-    if (hasInvite) {
-      await window.joinViaInviteIfPresent();
-    } else {
-      await autoReconnect();
-    }
-  } catch (e) {
-    console.error(e);
+try {
+  if (hasInvite) {
+    // ✅ Invite-Flow übernimmt Login + Name + Redeem + setTab
+    await window.joinViaInviteIfPresent();
+  } else {
+    // ✅ Nur im normalen Flow Login erzwingen
+    const ok = await ensureLoggedIn();
+    if (!ok) return;
+    await autoReconnect();
   }
+} catch (e) {
+  console.error(e);
+}
+
 
   // --- Account Menu Wiring ---
   const accountChipBtn = document.getElementById("accountChipBtn");
