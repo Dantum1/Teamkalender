@@ -1192,11 +1192,11 @@ window.joinViaInviteIfPresent = async () => {
 
 room = normalizeRoomCode(roomCode);
 me = name.trim();
-saveSessionPrefs();
  
   document.getElementById("roomCode").value = room;
   document.getElementById("myName").value = name.trim();
 
+saveSessionPrefs();
 
 
   await loadRoomState();
@@ -1206,7 +1206,12 @@ saveSessionPrefs();
   renderAll();
   await renderAccountChip();
   setTab("calendar");
-  history.replaceState({}, "", location.pathname);
+  const url = new URL(location.href);
+  url.searchParams.delete("invite");
+  url.searchParams.delete("join");
+  url.searchParams.set("room", room);
+  history.replaceState({}, "", url.toString());
+
   notify("Beigetreten ✅", "ok");
 }; // ✅ HIER wird die Invite-Funktion geschlossen
 
@@ -1215,12 +1220,16 @@ saveSessionPrefs();
 async function autoReconnect(){
   const saved = loadSessionPrefs();
   const savedRoom = normalizeRoomCode(saved.room);
-  if (!savedRoom || !saved.name) return;
+  const savedName = (saved.name || "").trim();
 
-  await ensureLoggedIn();
+  // ✅ nur reconnecten, wenn wirklich Daten da sind
+  if (!savedRoom || !savedName) return;
+
+  const ok = await ensureLoggedIn();
+  if (!ok) return;
 
   room = savedRoom;
-  me = saved.name.trim();
+  me = savedName;
 
   document.getElementById("roomCode").value = room;
   document.getElementById("myName").value = me;
@@ -1232,6 +1241,7 @@ async function autoReconnect(){
   renderAll();
   await renderAccountChip();
 
+  setTab("calendar");
   notify(`Wieder verbunden: ${room} ✅`, "ok");
 }
 
