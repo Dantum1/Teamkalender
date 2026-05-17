@@ -426,7 +426,7 @@ async function askName(){
 
   // ✅ HIER ANPASSEN:
   const SUPABASE_URL = "https://pszikiipbxgusmupvbom.supabase.co/rest/v1/";
-  const SUPABASE_ANON_KEY = "sb_publishable_AN1UF-KYqT4w-g6Z4VKsew_d7JVg90R";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzemlraWlwYnhndXNtdXB2Ym9tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMTY5MzYsImV4cCI6MjA5NDU5MjkzNn0.aonnptcQXwau0q_r2SOD7RuVjJC2wDnKdl9zpgQcdkw";
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 supabase.auth.onAuthStateChange((_event, session) => {
